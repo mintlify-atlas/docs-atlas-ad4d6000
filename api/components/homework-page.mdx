@@ -1,0 +1,449 @@
+---
+title: HomeworkPage
+description: Page component for displaying weekly homework assignments with requirements, code templates, and grading rubrics
+---
+
+## Overview
+
+The `HomeworkPage` component displays comprehensive homework assignments for each week, including requirements checklist, code templates, grading criteria, and submission instructions.
+
+**Location:** `src/pages/HomeworkPage.tsx`
+
+## Features
+
+- Interactive requirements checklist with completion tracking
+- Status management (not-started, in-progress, submitted, graded)
+- Code templates with starter and solution code
+- Detailed grading rubric display
+- Submission instructions with portal integration
+- Progress persistence across sessions
+- Automatic status updates based on checklist completion
+
+## Component Interface
+
+```tsx
+const HomeworkPage: React.FC = () => {
+  // No props - uses URL params via React Router
+}
+```
+
+### URL Parameters
+
+<ParamField path="weekId" type="string" required>
+  The unique identifier for the week (e.g., "week1")
+</ParamField>
+
+## Dependencies
+
+### State Management
+
+- `useBootcampStore` - Manages homework progress, status, and checklist
+- `useTranslatedCurriculum` - Provides localized curriculum data
+
+### Data Helpers
+
+- `getWeekById()` - Retrieves week data including homework
+
+### Child Components
+
+- `GradingRubric` - Displays grading criteria
+- `CodeTemplate` - Shows starter and solution code
+
+## Usage Example
+
+### Route Configuration
+
+```tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import HomeworkPage from '@/pages/HomeworkPage';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/week/:weekId/homework" element={<HomeworkPage />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+### Navigation to Homework
+
+```tsx
+import { useNavigate } from 'react-router-dom';
+
+function WeekOverview() {
+  const navigate = useNavigate();
+  
+  const openHomework = (weekId: string) => {
+    navigate(`/week/${weekId}/homework`);
+  };
+  
+  return (
+    <button onClick={() => openHomework('week1')}>
+      View Week 1 Homework
+    </button>
+  );
+}
+```
+
+## Homework Data Structure
+
+```tsx
+interface Homework {
+  id: string;
+  title: string;
+  description: string;
+  requirements: Requirement[];
+  gradingCriteria: GradingCriterion[];
+  starterCode?: CodeSnippet;
+  solutionCode?: CodeSnippet;
+  estimatedHours: number;
+  submissionInstructions: string[];
+}
+
+interface Requirement {
+  id: string;
+  title: string;
+  description: string;
+  type: 'code' | 'written' | 'practical' | 'screenshot';
+}
+```
+
+## Status Management
+
+### Status Types
+
+<ParamField path="not-started" type="status">
+  Initial state - homework not yet begun
+  
+  **Badge Color:** Muted gray
+</ParamField>
+
+<ParamField path="in-progress" type="status">
+  At least one requirement checked
+  
+  **Badge Color:** Amber/yellow
+</ParamField>
+
+<ParamField path="submitted" type="status">
+  All requirements completed and marked as submitted
+  
+  **Badge Color:** Blue
+</ParamField>
+
+<ParamField path="graded" type="status">
+  Homework reviewed by instructor (future feature)
+  
+  **Badge Color:** Green
+</ParamField>
+
+### Status Transitions
+
+```tsx
+// Auto-transition: not-started → in-progress
+toggleHomeworkChecklistItem(weekId, req.id);
+if (hwStatus === 'not-started') {
+  updateHomeworkStatus(weekId, 'in-progress');
+}
+
+// Manual transition: in-progress → submitted
+<Button 
+  onClick={() => updateHomeworkStatus(weekId, 'submitted')}
+  disabled={!allChecked}
+>
+  Mark as Submitted
+</Button>
+```
+
+## Requirements Checklist
+
+### Checklist State
+
+```tsx
+const checklist = hwProgress?.checklist ?? {}; // { [reqId]: boolean }
+const allChecked = hw.requirements.every((r) => checklist[r.id]);
+```
+
+### Requirement Display
+
+**Each requirement shows:**
+- Checkbox for completion tracking
+- Requirement title
+- Type badge (code, written, practical, screenshot)
+- Description text
+- Visual feedback when checked (green border/background)
+
+### Interaction
+
+```tsx
+<Checkbox
+  checked={checklist[req.id] ?? false}
+  onCheckedChange={() => {
+    toggleHomeworkChecklistItem(weekId, req.id);
+    if (hwStatus === 'not-started') {
+      updateHomeworkStatus(weekId, 'in-progress');
+    }
+  }}
+/>
+```
+
+## Code Templates
+
+### Display Conditions
+
+```tsx
+{hw.starterCode && hw.solutionCode && (
+  <CodeTemplate
+    starterCode={hw.starterCode}
+    solutionCode={hw.solutionCode}
+    description={t('ui.homework.codeTemplateDescription')}
+  />
+)}
+```
+
+### Code Snippet Structure
+
+```tsx
+interface CodeSnippet {
+  language: string;      // e.g., "solidity", "typescript"
+  code: string;          // The actual code
+  filename?: string;     // e.g., "Counter.sol"
+  description?: string;  // Code description
+}
+```
+
+## Grading Rubric
+
+Displays detailed grading criteria via `GradingRubric` component:
+
+```tsx
+interface GradingCriterion {
+  name: string;          // Criterion name
+  weight: number;        // Percentage weight
+  description: string;   // What's being evaluated
+  rubric: {             // Score levels
+    score: string;       // e.g., "Excellent", "Good"
+    description: string; // What qualifies for this score
+  }[];
+}
+```
+
+## Submission Instructions
+
+### Instruction Display
+
+```tsx
+<ol className="space-y-2">
+  {hw.submissionInstructions.map((instruction, i) => {
+    const isComingSoon = instruction.includes('[Submission portal coming soon]');
+    return (
+      <li key={i}>
+        <span className="step-number">{i + 1}</span>
+        <span>{instruction}</span>
+        {isComingSoon && (
+          <Badge variant="outline">Coming Soon</Badge>
+        )}
+      </li>
+    );
+  })}
+</ol>
+```
+
+### Coming Soon Badge
+
+Automatically detects and highlights placeholder instructions:
+
+```tsx
+const isComingSoon = instruction.includes('[Submission portal coming soon]');
+```
+
+## Action Buttons
+
+### Not Started State
+
+```tsx
+<Button
+  variant="outline"
+  onClick={() => updateHomeworkStatus(weekId, 'in-progress')}
+>
+  <Circle className="h-4 w-4" />
+  Start Homework
+</Button>
+```
+
+### In Progress State
+
+```tsx
+<Button
+  onClick={() => updateHomeworkStatus(weekId, 'submitted')}
+  disabled={!allChecked}
+>
+  <CheckCircle className="h-4 w-4" />
+  Mark as Submitted
+</Button>
+```
+
+**Disabled when:**
+- Not all requirements are checked
+- Prevents incomplete submissions
+
+### Submitted State
+
+```tsx
+<Badge className="bg-blue-500/10 text-blue-600">
+  <CheckCircle className="h-4 w-4" />
+  Submitted — Awaiting Review
+</Badge>
+```
+
+## Header Information
+
+### Metadata Badges
+
+```tsx
+<Badge variant="outline">Week {week.number}</Badge>
+<Badge variant="outline">
+  <FileText className="h-3 w-3" />
+  Homework
+</Badge>
+<Badge variant="outline">
+  <Clock className="h-3 w-3" />
+  {hw.estimatedHours} hours
+</Badge>
+<Badge className={statusColors[hwStatus]}>
+  {statusLabel}
+</Badge>
+```
+
+### Title and Description
+
+```tsx
+<h1 className="text-3xl font-display font-bold">{hw.title}</h1>
+<p className="text-lg text-muted-foreground">{hw.description}</p>
+```
+
+## Navigation
+
+### Back Navigation
+
+```tsx
+// Top of page
+<Button onClick={() => navigate(`/week/${weekId}`)}>
+  <ArrowLeft /> Back to Week {week.number}
+</Button>
+
+// Bottom of page
+<Button variant="ghost" onClick={() => navigate(`/week/${weekId}`)}>
+  <ArrowLeft /> Back to Week
+</Button>
+```
+
+## Error Handling
+
+### Week Not Found
+
+```tsx
+if (!week || !weekId) {
+  return (
+    <div className="max-w-4xl mx-auto p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">Homework not found</h1>
+      <Button onClick={() => navigate('/')}>Back to Dashboard</Button>
+    </div>
+  );
+}
+```
+
+## Progress Persistence
+
+Homework progress is automatically saved to the bootcamp store:
+
+```tsx
+interface HomeworkProgress {
+  status: 'not-started' | 'in-progress' | 'submitted' | 'graded';
+  checklist: Record<string, boolean>; // { [requirementId]: completed }
+  submittedAt?: string;
+  grade?: number;
+  feedback?: string;
+}
+```
+
+## Internationalization
+
+Supports translation for all UI text:
+
+```tsx
+const { t } = useTranslation();
+
+t('ui.homework.notFound')
+t('ui.homework.backToWeek', { number: week.number })
+t('ui.homework.label')
+t('ui.homework.requirements')
+t('ui.homework.submissionInstructions')
+```
+
+## Animation
+
+Uses Framer Motion for header animation:
+
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="space-y-3"
+>
+  {/* Header content */}
+</motion.div>
+```
+
+## Best Practices
+
+### Checklist Design
+
+- Keep requirements focused and specific
+- Use clear, actionable titles
+- Include 4-8 requirements per homework
+- Mix requirement types (code, written, practical)
+
+### Code Templates
+
+```tsx
+// ✅ Good: Provide both starter and solution
+starterCode: {
+  language: 'solidity',
+  code: '// TODO: Implement contract',
+  filename: 'MyContract.sol'
+}
+solutionCode: {
+  language: 'solidity',
+  code: '// Complete implementation',
+  filename: 'MyContract.sol'
+}
+
+// ❌ Bad: Missing solution code
+starterCode: { ... }
+// solutionCode omitted
+```
+
+### Status Flow
+
+```tsx
+// ✅ Good: Natural progression
+not-started → in-progress → submitted → graded
+
+// ❌ Bad: Skipping steps
+not-started → submitted (missing checklist validation)
+```
+
+## Related Components
+
+- [LessonView](/api/components/lesson-view) - Main lesson display
+- `GradingRubric` - Grading criteria display
+- `CodeTemplate` - Code template viewer
+
+## See Also
+
+- [Homework Types](/api/types/homework) - Complete homework type definitions
+- [Bootcamp Store](/api/state/bootcamp-store) - Progress tracking
+- [Curriculum Overview](/curriculum/overview) - Week structure

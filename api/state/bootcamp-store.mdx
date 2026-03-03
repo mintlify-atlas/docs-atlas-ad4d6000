@@ -1,0 +1,525 @@
+---
+title: 'useBootcampStore'
+description: 'Zustand store hook for managing bootcamp state, progress tracking, and UI interactions'
+---
+
+## Overview
+
+The `useBootcampStore` hook provides centralized state management for the FHEVM Bootcamp using Zustand with persistence middleware. It manages learning modes, progress tracking, navigation state, and UI interactions.
+
+```typescript
+import { useBootcampStore } from '@/state/bootcampStore';
+```
+
+## Store Implementation
+
+The store uses Zustand's `persist` middleware to save state to local storage:
+
+```typescript
+export const useBootcampStore = create<BootcampState>()()
+  persist(
+    (set, get) => ({ /* state and actions */ }),
+    {
+      name: 'fhevm-bootcamp-progress',
+      partialize: (state) => ({
+        learningMode: state.learningMode,
+        instructorMode: state.instructorMode,
+        currentWeekId: state.currentWeekId,
+        currentLessonId: state.currentLessonId,
+        progress: state.progress,
+      }),
+    }
+  )
+);
+```
+
+## State Properties
+
+### Learning Mode
+
+<ResponseField name="learningMode" type="LearningMode" default="'self-paced'">
+  Current learning mode: `'self-paced'` or `'cohort'`. Affects access control for weeks and lessons.
+</ResponseField>
+
+<ResponseField name="instructorMode" type="boolean" default="true">
+  Whether instructor mode is enabled. Provides additional controls and visibility for instructors.
+</ResponseField>
+
+### Navigation State
+
+<ResponseField name="currentWeekId" type="string" default="'week-1'">
+  ID of the currently active week.
+</ResponseField>
+
+<ResponseField name="currentLessonId" type="string | null" default="null">
+  ID of the currently active lesson, or `null` if viewing week overview.
+</ResponseField>
+
+### Progress Data
+
+<ResponseField name="progress" type="Record<string, WeekProgress>">
+  Progress data for all weeks, indexed by week ID. See [progress-tracking](/api/state/progress-tracking) for detailed structure.
+</ResponseField>
+
+### UI State
+
+<ResponseField name="confettiTrigger" type="boolean" default="false">
+  Trigger flag for confetti animation. Set to `true` to trigger confetti.
+</ResponseField>
+
+<ResponseField name="celebrationModal" type="object">
+  State for the celebration modal shown on achievement completion.
+  
+  <Expandable title="properties">
+    <ResponseField name="isOpen" type="boolean">
+      Whether the modal is visible.
+    </ResponseField>
+    <ResponseField name="title" type="string">
+      Modal title text.
+    </ResponseField>
+    <ResponseField name="subtitle" type="string">
+      Modal subtitle text.
+    </ResponseField>
+    <ResponseField name="completedCount" type="number">
+      Number of items completed.
+    </ResponseField>
+    <ResponseField name="totalCount" type="number">
+      Total number of items.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Action Methods
+
+### Learning Mode Actions
+
+<ParamField path="setLearningMode" type="(mode: LearningMode) => void">
+  Sets the learning mode to either `'self-paced'` or `'cohort'`.
+  
+  ```typescript
+  const setLearningMode = useBootcampStore((state) => state.setLearningMode);
+  setLearningMode('cohort');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="mode" type="LearningMode" required>
+      The learning mode to set: `'self-paced'` or `'cohort'`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="toggleInstructorMode" type="() => void">
+  Toggles instructor mode on/off.
+  
+  ```typescript
+  const toggleInstructorMode = useBootcampStore((state) => state.toggleInstructorMode);
+  toggleInstructorMode();
+  ```
+</ParamField>
+
+### Navigation Actions
+
+<ParamField path="setCurrentLocation" type="(weekId: string, lessonId?: string | null) => void">
+  Sets the current week and optionally the current lesson.
+  
+  ```typescript
+  const setCurrentLocation = useBootcampStore((state) => state.setCurrentLocation);
+  
+  // Navigate to week overview
+  setCurrentLocation('week-2');
+  
+  // Navigate to specific lesson
+  setCurrentLocation('week-2', 'lesson-2-1');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID to navigate to.
+    </ParamField>
+    <ParamField path="lessonId" type="string | null" default="null">
+      The lesson ID to navigate to, or `null` for week overview.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Progress Actions
+
+<ParamField path="completeLesson" type="(weekId: string, lessonId: string) => void">
+  Marks a lesson as completed and records the completion timestamp.
+  
+  ```typescript
+  const completeLesson = useBootcampStore((state) => state.completeLesson);
+  completeLesson('week-1', 'lesson-1-1');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID containing the lesson.
+    </ParamField>
+    <ParamField path="lessonId" type="string" required>
+      The lesson ID to mark as completed.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="setQuizScore" type="(weekId: string, lessonId: string, score: number, passed: boolean) => void">
+  Records a quiz score and pass/fail status for a lesson.
+  
+  ```typescript
+  const setQuizScore = useBootcampStore((state) => state.setQuizScore);
+  setQuizScore('week-1', 'lesson-1-1', 85, true);
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID containing the lesson.
+    </ParamField>
+    <ParamField path="lessonId" type="string" required>
+      The lesson ID for the quiz.
+    </ParamField>
+    <ParamField path="score" type="number" required>
+      The quiz score (typically 0-100).
+    </ParamField>
+    <ParamField path="passed" type="boolean" required>
+      Whether the quiz was passed.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="updateHomeworkStatus" type="(weekId: string, status: HomeworkStatus) => void">
+  Updates the status of a week's homework assignment. Automatically records submission timestamp when status is `'submitted'`.
+  
+  ```typescript
+  const updateHomeworkStatus = useBootcampStore((state) => state.updateHomeworkStatus);
+  updateHomeworkStatus('week-1', 'submitted');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID for the homework.
+    </ParamField>
+    <ParamField path="status" type="HomeworkStatus" required>
+      The homework status: `'not-started'`, `'in-progress'`, `'submitted'`, or `'graded'`.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="toggleHomeworkChecklistItem" type="(weekId: string, itemId: string) => void">
+  Toggles a checklist item in a week's homework.
+  
+  ```typescript
+  const toggleHomeworkChecklistItem = useBootcampStore((state) => state.toggleHomeworkChecklistItem);
+  toggleHomeworkChecklistItem('week-1', 'task-1');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID for the homework.
+    </ParamField>
+    <ParamField path="itemId" type="string" required>
+      The checklist item ID to toggle.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="addTimeSpent" type="(weekId: string, lessonId: string, minutes: number) => void">
+  Adds time spent on a lesson to the running total.
+  
+  ```typescript
+  const addTimeSpent = useBootcampStore((state) => state.addTimeSpent);
+  addTimeSpent('week-1', 'lesson-1-1', 15);
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID containing the lesson.
+    </ParamField>
+    <ParamField path="lessonId" type="string" required>
+      The lesson ID to add time to.
+    </ParamField>
+    <ParamField path="minutes" type="number" required>
+      Number of minutes to add.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### Derived Getter Methods
+
+<ParamField path="getWeekProgress" type="(weekId: string) => { completed: number; total: number; percentage: number }">
+  Calculates progress statistics for a specific week.
+  
+  ```typescript
+  const getWeekProgress = useBootcampStore((state) => state.getWeekProgress);
+  const progress = getWeekProgress('week-1');
+  // { completed: 3, total: 5, percentage: 60 }
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID to calculate progress for.
+    </ParamField>
+  </Expandable>
+  
+  <Expandable title="returns">
+    <ResponseField name="completed" type="number">
+      Number of completed lessons.
+    </ResponseField>
+    <ResponseField name="total" type="number">
+      Total number of lessons.
+    </ResponseField>
+    <ResponseField name="percentage" type="number">
+      Completion percentage (0-100), rounded to nearest integer.
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="getOverallProgress" type="() => { completed: number; total: number; percentage: number }">
+  Calculates progress statistics across all weeks.
+  
+  ```typescript
+  const getOverallProgress = useBootcampStore((state) => state.getOverallProgress);
+  const progress = getOverallProgress();
+  // { completed: 12, total: 24, percentage: 50 }
+  ```
+  
+  <Expandable title="returns">
+    <ResponseField name="completed" type="number">
+      Total number of completed lessons across all weeks.
+    </ResponseField>
+    <ResponseField name="total" type="number">
+      Total number of lessons in the bootcamp.
+    </ResponseField>
+    <ResponseField name="percentage" type="number">
+      Overall completion percentage (0-100), rounded to nearest integer.
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="isLessonCompleted" type="(weekId: string, lessonId: string) => boolean">
+  Checks if a specific lesson has been completed.
+  
+  ```typescript
+  const isLessonCompleted = useBootcampStore((state) => state.isLessonCompleted);
+  const completed = isLessonCompleted('week-1', 'lesson-1-1');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID containing the lesson.
+    </ParamField>
+    <ParamField path="lessonId" type="string" required>
+      The lesson ID to check.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="isWeekCompleted" type="(weekId: string) => boolean">
+  Checks if all lessons in a week have been completed.
+  
+  ```typescript
+  const isWeekCompleted = useBootcampStore((state) => state.isWeekCompleted);
+  const completed = isWeekCompleted('week-1');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID to check.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="canAccessWeek" type="(weekId: string) => boolean">
+  Determines if a week is accessible based on learning mode and progress.
+  
+  In self-paced mode, all weeks are accessible. In cohort mode, the previous week must be completed.
+  
+  ```typescript
+  const canAccessWeek = useBootcampStore((state) => state.canAccessWeek);
+  const accessible = canAccessWeek('week-3');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID to check access for.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="canAccessLesson" type="(weekId: string, lessonId: string) => boolean">
+  Determines if a lesson is accessible based on learning mode and progress.
+  
+  First checks if the week is accessible. In self-paced mode, all lessons are accessible. In cohort mode, the previous lesson in the same week must be completed.
+  
+  ```typescript
+  const canAccessLesson = useBootcampStore((state) => state.canAccessLesson);
+  const accessible = canAccessLesson('week-2', 'lesson-2-3');
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="weekId" type="string" required>
+      The week ID containing the lesson.
+    </ParamField>
+    <ParamField path="lessonId" type="string" required>
+      The lesson ID to check access for.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+### UI Actions
+
+<ParamField path="triggerConfetti" type="() => void">
+  Triggers the confetti animation by setting `confettiTrigger` to `true`.
+  
+  ```typescript
+  const triggerConfetti = useBootcampStore((state) => state.triggerConfetti);
+  triggerConfetti();
+  ```
+</ParamField>
+
+<ParamField path="showCelebration" type="(title: string, subtitle: string, completedCount?: number, totalCount?: number) => void">
+  Shows the celebration modal with custom content.
+  
+  ```typescript
+  const showCelebration = useBootcampStore((state) => state.showCelebration);
+  showCelebration(
+    'Week 1 Complete!',
+    'Great job completing all lessons',
+    5,
+    5
+  );
+  ```
+  
+  <Expandable title="parameters">
+    <ParamField path="title" type="string" required>
+      The modal title text.
+    </ParamField>
+    <ParamField path="subtitle" type="string" required>
+      The modal subtitle text.
+    </ParamField>
+    <ParamField path="completedCount" type="number" default="0">
+      Number of items completed to display.
+    </ParamField>
+    <ParamField path="totalCount" type="number" default="0">
+      Total number of items to display.
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="hideCelebration" type="() => void">
+  Hides the celebration modal.
+  
+  ```typescript
+  const hideCelebration = useBootcampStore((state) => state.hideCelebration);
+  hideCelebration();
+  ```
+</ParamField>
+
+### Reset Actions
+
+<ParamField path="resetProgress" type="() => void">
+  Resets all progress to initial state. Clears all lesson completions, quiz scores, homework status, and navigation state.
+  
+  ```typescript
+  const resetProgress = useBootcampStore((state) => state.resetProgress);
+  resetProgress();
+  ```
+</ParamField>
+
+## Usage Examples
+
+### Basic Hook Usage
+
+```typescript
+import { useBootcampStore } from '@/state/bootcampStore';
+
+function MyComponent() {
+  // Subscribe to specific state
+  const learningMode = useBootcampStore((state) => state.learningMode);
+  const currentWeekId = useBootcampStore((state) => state.currentWeekId);
+  
+  // Get actions
+  const completeLesson = useBootcampStore((state) => state.completeLesson);
+  const setLearningMode = useBootcampStore((state) => state.setLearningMode);
+  
+  return (
+    <div>
+      <p>Current mode: {learningMode}</p>
+      <p>Current week: {currentWeekId}</p>
+    </div>
+  );
+}
+```
+
+### Progress Tracking
+
+```typescript
+function LessonView({ weekId, lessonId }) {
+  const completeLesson = useBootcampStore((state) => state.completeLesson);
+  const addTimeSpent = useBootcampStore((state) => state.addTimeSpent);
+  const isCompleted = useBootcampStore((state) => 
+    state.isLessonCompleted(weekId, lessonId)
+  );
+  
+  const handleComplete = () => {
+    completeLesson(weekId, lessonId);
+    addTimeSpent(weekId, lessonId, 30);
+  };
+  
+  return (
+    <button onClick={handleComplete} disabled={isCompleted}>
+      {isCompleted ? 'Completed' : 'Mark as Complete'}
+    </button>
+  );
+}
+```
+
+### Quiz Submission
+
+```typescript
+function QuizComponent({ weekId, lessonId }) {
+  const setQuizScore = useBootcampStore((state) => state.setQuizScore);
+  const triggerConfetti = useBootcampStore((state) => state.triggerConfetti);
+  
+  const handleSubmit = (score: number) => {
+    const passed = score >= 70;
+    setQuizScore(weekId, lessonId, score, passed);
+    
+    if (passed) {
+      triggerConfetti();
+    }
+  };
+  
+  return <div>{/* Quiz UI */}</div>;
+}
+```
+
+### Access Control
+
+```typescript
+function WeekCard({ weekId }) {
+  const canAccess = useBootcampStore((state) => state.canAccessWeek(weekId));
+  const isCompleted = useBootcampStore((state) => state.isWeekCompleted(weekId));
+  const progress = useBootcampStore((state) => state.getWeekProgress(weekId));
+  
+  return (
+    <div>
+      <h3>Week {weekId}</h3>
+      <p>Progress: {progress.percentage}%</p>
+      {!canAccess && <p>Complete previous week to unlock</p>}
+      {isCompleted && <p>✓ Completed</p>}
+    </div>
+  );
+}
+```
+
+## Persistence
+
+The store automatically persists the following state to local storage under the key `'fhevm-bootcamp-progress'`:
+
+- `learningMode`
+- `instructorMode`
+- `currentWeekId`
+- `currentLessonId`
+- `progress`
+
+UI state (confetti, celebration modal) is not persisted and resets on page reload.

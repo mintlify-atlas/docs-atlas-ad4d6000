@@ -1,0 +1,304 @@
+---
+title: Curriculum Structure
+description: Understanding the 4-week FHEVM Bootcamp curriculum architecture, data model, and content organization
+icon: 'book-open'
+---
+
+## Overview
+
+The FHEVM Bootcamp curriculum is a comprehensive 4-week program designed to onboard developers into confidential computing with Fully Homomorphic Encryption (FHE) at scale. The curriculum follows a structured progression from foundational concepts to advanced real-world applications.
+
+<CardGroup cols={2}>
+  <Card title="4 Weeks" icon="calendar">
+    Structured learning path covering FHE fundamentals to production deployment
+  </Card>
+  <Card title="TypeScript-First" icon="code">
+    Entire curriculum defined in TypeScript for type safety and IDE support
+  </Card>
+  <Card title="Multi-Modal" icon="layers">
+    Text, code, video, interactive components, quizzes, and hands-on homework
+  </Card>
+  <Card title="Instructor-Ready" icon="graduation-cap">
+    Built-in instructor notes, pacing guides, and facilitation tips
+  </Card>
+</CardGroup>
+
+## Curriculum Data Model
+
+The curriculum is defined in `src/data/curriculum.ts` using a strongly-typed TypeScript structure. This ensures consistency and enables powerful IDE features.
+
+### Core Types
+
+```typescript src/data/curriculum.ts
+export interface Curriculum {
+  title: string;
+  description: string;
+  targetAudience: string[];
+  prerequisites: string[];
+  weeks: Week[];
+}
+
+export interface Week {
+  id: string;              // e.g. 'week-1'
+  number: number;          // 1-4
+  title: string;
+  subtitle: string;
+  objectives: string[];    // Learning outcomes for the week
+  lessons: Lesson[];
+  homework: Homework;
+  milestone: string;       // What students should accomplish
+  estimatedHours: number;
+}
+```
+
+### Lesson Structure
+
+Each lesson contains multiple sections with different content types:
+
+```typescript src/data/curriculum.ts
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  icon: string;                // Lucide icon name
+  sections: Section[];
+  quiz?: Quiz;
+  instructorNotes: string[];
+  codeTemplate?: CodeTemplate;
+  objectives: string[];        // Specific learning objectives
+}
+```
+
+## Week-by-Week Structure
+
+The bootcamp follows a progressive learning path:
+
+<Steps>
+  <Step title="Week 1: Foundations of Confidential Computing">
+    - **Focus**: Understand FHE, set up tooling, grasp FHEVM architecture
+    - **Lessons**: 3 lessons covering FHE fundamentals, environment setup, and deep dive
+    - **Estimated Hours**: 8 hours
+    - **Milestone**: Working dev environment with wallet connected to Sepolia
+  </Step>
+  
+  <Step title="Week 2: FHEVM Smart Contract Development">
+    - **Focus**: Write, test, and deploy confidential smart contracts
+    - **Lessons**: Hands-on contract development and testing
+    - **Estimated Hours**: 10 hours
+    - **Milestone**: Deployed and tested EncryptedCounter contract on Sepolia
+  </Step>
+  
+  <Step title="Week 3: Building Confidential dApps">
+    - **Focus**: Frontend integration, decryption flows, and UX patterns
+    - **Lessons**: Full-stack dApp development with FHEVM
+    - **Estimated Hours**: 12 hours
+    - **Milestone**: Working confidential voting dApp
+  </Step>
+  
+  <Step title="Week 4: Production & Advanced Patterns">
+    - **Focus**: Gas optimization, security, testing, and deployment
+    - **Lessons**: Production-ready patterns and best practices
+    - **Estimated Hours**: 12 hours
+    - **Milestone**: Production-grade confidential application deployed
+  </Step>
+</Steps>
+
+## Section Types
+
+The curriculum supports diverse content types through the `Section` interface:
+
+```typescript src/data/curriculum.ts
+export interface Section {
+  id: string;
+  title: string;
+  type: 'text' | 'code' | 'interactive' | 'video' | 'diagram' | 'quiz';
+  content: string[];       // Paragraphs of text
+  code?: CodeSnippet;
+  tips?: string[];
+  keyPoints?: string[];
+  videoId?: string;        // YouTube video ID
+  diagramCode?: string;    // Mermaid diagram syntax
+  componentId?: string;    // Reference to interactive component
+}
+```
+
+### Content Type Examples
+
+<AccordionGroup>
+  <Accordion title="Text Sections">
+    Standard explanatory content with support for markdown-style formatting:
+    - Multiple paragraphs in `content` array
+    - Optional `keyPoints` for callouts
+    - Optional `tips` for practical advice
+  </Accordion>
+  
+  <Accordion title="Code Sections">
+    Syntax-highlighted code with context:
+    ```typescript
+    code: {
+      language: 'solidity',
+      code: '// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;...',
+      filename: 'EncryptedCounter.sol',
+      description: 'A contract with encrypted state'
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Video Sections">
+    Embedded YouTube videos with responsive iframe:
+    ```typescript
+    type: 'video',
+    videoId: '1FtbyHZwNX4',  // YouTube video ID
+    ```
+  </Accordion>
+  
+  <Accordion title="Diagram Sections">
+    Mermaid diagrams rendered client-side:
+    ```typescript
+    type: 'diagram',
+    diagramCode: `flowchart LR
+      A["Client"] -->|"Encrypt"| B["Contract"]
+      B -->|"Compute"| C["Result"]`
+    ```
+  </Accordion>
+  
+  <Accordion title="Interactive Sections">
+    Custom React components for hands-on learning:
+    ```typescript
+    type: 'interactive',
+    componentId: 'fhe-basics-contracts',  // Maps to ContractExplorer
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Accessing Curriculum Data
+
+The curriculum is exported from `src/data/curriculum.ts` and consumed throughout the application:
+
+```typescript src/state/bootcampStore.ts
+import { curriculum, getTotalLessons, getAllLessonIds } from '@/data/curriculum';
+
+// Access weeks
+curriculum.weeks.forEach((week) => {
+  console.log(week.title, week.lessons.length);
+});
+
+// Helper functions
+const totalLessons = getTotalLessons();  // Count all lessons
+const allIds = getAllLessonIds();        // Get all week/lesson ID pairs
+```
+
+### Helper Functions
+
+The curriculum module provides utility functions for navigation:
+
+```typescript src/data/curriculum.ts
+// Get specific week by ID
+export function getWeekById(weekId: string, curriculum: Curriculum): Week | undefined
+
+// Get specific lesson by ID
+export function getLessonById(weekId: string, lessonId: string, curriculum: Curriculum): Lesson | undefined
+
+// Get next lesson in sequence
+export function getNextLesson(weekId: string, lessonId: string, curriculum: Curriculum)
+
+// Get previous lesson
+export function getPrevLesson(weekId: string, lessonId: string, curriculum: Curriculum)
+```
+
+## Target Audience
+
+The curriculum is designed for:
+
+<CodeGroup>
+```typescript Target Audiences
+curriculum.targetAudience = [
+  'Web3 developers with basic Ethereum and Solidity knowledge',
+  'Smart contract developers looking to add privacy-preserving capabilities',
+  'Technical educators and community leaders planning to run FHEVM workshops',
+]
+```
+
+```typescript Prerequisites
+curriculum.prerequisites = [
+  'Basic understanding of Ethereum and smart contracts',
+  'Familiarity with Solidity syntax',
+  'Experience with development tools such as Hardhat',
+]
+```
+</CodeGroup>
+
+## Curriculum Flexibility
+
+<Tip>
+The TypeScript-based curriculum structure makes it easy to:
+- **Add new weeks or lessons** by following the type structure
+- **Reorder content** by changing array positions
+- **Internationalize** by connecting to translation keys
+- **Customize** for different audiences or pacing
+</Tip>
+
+## Real Example: Week 1, Lesson 1
+
+Here's how "Welcome to FHEVM" is structured:
+
+```typescript src/data/curriculum.ts
+{
+  id: 'welcome-to-fhevm',
+  title: 'Welcome to FHEVM',
+  description: 'Introduction to FHE, the Zama Protocol, and real-world use cases',
+  estimatedMinutes: 30,
+  icon: 'Home',
+  objectives: [
+    'Define Fully Homomorphic Encryption in your own words',
+    'Explain how FHEVM brings FHE to Ethereum',
+    'Identify 3+ real-world use cases for confidential computing',
+  ],
+  sections: [
+    {
+      id: 'week1-video',
+      title: 'Video: Introduction to Confidential Smart Contracts',
+      type: 'video',
+      videoId: '1FtbyHZwNX4',
+      content: ['Watch this Zama tutorial...']
+    },
+    {
+      id: 'what-is-fhe',
+      title: 'What is Fully Homomorphic Encryption?',
+      type: 'text',
+      content: ['FHE allows computation on encrypted data...'],
+      keyPoints: [
+        'Compute on encrypted data without decryption',
+        'Results remain encrypted until explicitly revealed'
+      ]
+    }
+  ],
+  quiz: { /* Quiz definition */ },
+  instructorNotes: [
+    'Start with the "why": show a token transfer on Etherscan',
+    'The HTTPS analogy is your best friend'
+  ]
+}
+```
+
+<Check>
+The curriculum structure balances **rigidity** (enforced types, required fields) with **flexibility** (optional quizzes, varied section types, customizable content).
+</Check>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Lessons" icon="book" href="./lessons">
+    Deep dive into lesson structure, sections, and learning objectives
+  </Card>
+  <Card title="Quizzes" icon="brain" href="./quizzes">
+    Explore the quiz system, question types, and scoring
+  </Card>
+  <Card title="Homework" icon="clipboard" href="./homework">
+    Learn about homework assignments and grading rubrics
+  </Card>
+  <Card title="Progress Tracking" icon="chart-line" href="./progress-tracking">
+    Understand how progress is persisted and tracked
+  </Card>
+</CardGroup>

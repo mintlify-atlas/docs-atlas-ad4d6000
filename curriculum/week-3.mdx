@@ -1,0 +1,489 @@
+---
+title: Week 3 - Full-Stack Confidential dApps
+description: Build end-to-end encrypted applications with frontend integration
+icon: laptop-code
+---
+
+# Week 3: Full-Stack Confidential dApps
+
+**Subtitle:** Build end-to-end encrypted applications with frontend integration
+
+**Estimated Time:** 12 hours of lessons + 8 hours homework
+
+## Objectives
+
+<CardGroup cols={2}>
+  <Card title="Frontend Integration" icon="react">
+    Integrate fhevmjs client SDK with a React frontend
+  </Card>
+  <Card title="Private Voting" icon="vote-yea">
+    Build a complete Private Voting dApp from scratch
+  </Card>
+  <Card title="Encrypted Inputs" icon="lock">
+    Implement encrypted inputs, homomorphic tallying, and controlled decryption
+  </Card>
+  <Card title="Advanced Patterns" icon="layer-group">
+    Handle access control, error handling, and production patterns
+  </Card>
+</CardGroup>
+
+## Milestone
+
+<Check>Fully functional Private Voting dApp with React frontend</Check>
+<Check>Deployed and tested on Sepolia testnet</Check>
+<Check>Client-side encryption working correctly</Check>
+<Check>Understanding of all three decryption patterns</Check>
+
+---
+
+## Lessons
+
+### Lesson 3.1: Frontend Integration with fhevmjs
+**Duration:** 60 minutes
+
+<Accordion title="Learning Objectives">
+  - Install and initialize fhevmjs in a React project
+  - Create an FHE client instance and initialize it with the network public key
+  - Encrypt user inputs in the browser using the SDK
+  - Send encrypted transactions using ethers.js + fhevmjs
+</Accordion>
+
+<Accordion title="Setting Up the Relayer SDK in React">
+  The `@zama-fhe/relayer-sdk` handles all FHE operations: initializing the FHEVM instance, encrypting user inputs, and decrypting on-chain values.
+  
+  ```typescript
+  // fheClient.ts — Core FHE operations
+  import type { FhevmInstance } from "@zama-fhe/relayer-sdk";
+  
+  let fheInstance: FhevmInstance | null = null;
+  
+  // Initialize once at app startup
+  export async function initFhevm(): Promise<FhevmInstance> {
+    if (fheInstance) return fheInstance;
+  
+    // In the browser, RelayerSDK is loaded via CDN <script> tag
+    const { initSDK, createInstance, SepoliaConfig } = window.RelayerSDK;
+    await initSDK();
+  
+    fheInstance = await createInstance({
+      ...SepoliaConfig,
+      network: window.ethereum, // MetaMask EIP-1193 provider
+    });
+  
+    return fheInstance;
+  }
+  
+  // Encrypt a value for a specific contract + user
+  export async function encryptValue(
+    contractAddress: string,
+    userAddress: string,
+    value: number,
+    bitSize: 8 | 16 | 32 | 64 = 32
+  ) {
+    const instance = await initFhevm();
+    const input = instance.createEncryptedInput(contractAddress, userAddress);
+  
+    // Choose bit-size matching the contract param type
+    if (bitSize === 8) input.add8(value);
+    else if (bitSize === 16) input.add16(value);
+    else if (bitSize === 32) input.add32(value);
+    else input.add64(value);
+  
+    const encrypted = input.encrypt();
+    return {
+      handles: encrypted.handles,       // Uint8Array[] — pass to contract
+      inputProof: encrypted.inputProof, // Uint8Array — ZK proof
+    };
+  }
+  
+  // v0.9+: Public decrypt (for makePubliclyDecryptable values)
+  export async function publicDecryptHandles(handles: string[]) {
+    const instance = await initFhevm();
+    const result = await instance.publicDecrypt(handles);
+    return {
+      clearValues: result.clearValues,
+      abiEncodedClearValues: result.abiEncodedClearValues,
+      decryptionProof: result.decryptionProof,
+    };
+  }
+  ```
+  
+  <Info>
+    The SDK is a singleton — `initFhevm()` returns the cached instance after first call.
+  </Info>
+</Accordion>
+
+<Accordion title="React Component Integration">
+  ```typescript
+  import { useState } from "react";
+  import { useAccount, useWriteContract } from "wagmi";
+  import { initFhevm, encryptVote } from "./fheClient";
+  
+  function VoteButton({ sessionId }: { sessionId: number }) {
+    const { address } = useAccount();
+    const { writeContract } = useWriteContract();
+    const [loading, setLoading] = useState(false);
+  
+    const handleVote = async (choice: 0 | 1) => {
+      setLoading(true);
+      try {
+        // 1. Initialize FHE (cached after first call)
+        const fheInstance = await initFhevm();
+  
+        // 2. Encrypt the vote
+        const { handle, proof } = await encryptVote(
+          fheInstance,
+          CONTRACT_ADDRESS,
+          address!,
+          choice
+        );
+  
+        // 3. Send the encrypted transaction
+        await writeContract({
+          address: CONTRACT_ADDRESS,
+          abi: VOTING_ABI,
+          functionName: "vote",
+          args: [sessionId, handle, proof],
+        });
+      } catch (error) {
+        console.error("Vote failed:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    return (
+      <div>
+        <button onClick={() => handleVote(1)} disabled={loading}>
+          Vote YES
+        </button>
+        <button onClick={() => handleVote(0)} disabled={loading}>
+          Vote NO
+        </button>
+      </div>
+    );
+  }
+  ```
+</Accordion>
+
+<Accordion title="Universal FHEVM SDK Reference">
+  For a full production implementation, study the **Universal FHEVM SDK**:
+  
+  **Repository:** [0xchriswilder/fhevm-react-template](https://github.com/0xchriswilder/fhevm-react-template)
+  
+  **Live Demos:**
+  - [React Showcase](https://react-showcase-1738.up.railway.app)
+  - [Next.js Showcase](https://nextjs-showcase-1661.up.railway.app)
+  - [Vue Showcase](https://vue-showcase-2780.up.railway.app)
+  
+  **Features:**
+  - React hooks: `useWallet`, `useFhevm`, `useEncrypt`, `useDecrypt`, `useContract`
+  - Vue composables: Vue 3 Composition API equivalents
+  - Node.js adapter: Server-side operations, CLI explorer
+  - Working dApps: FHE Counter, Encrypted Ratings, SimpleVoting
+  
+  <Info>
+    All demos are deployed on Sepolia testnet with real contract interactions.
+  </Info>
+</Accordion>
+
+---
+
+### Lesson 3.2: FHEVM Relayer SDK Deep Dive
+**Duration:** 75 minutes
+
+<Accordion title="Learning Objectives">
+  - Initialize the Relayer SDK in both browser and Node.js environments
+  - Implement all three decryption patterns: EIP-712 User Decrypt, Public Decrypt, and Self-Relaying Decrypt
+  - Build production React hooks (useEncrypt, useDecrypt, useFhevm)
+  - Write Hardhat deployment scripts for FHEVM contracts
+  - Understand the full lifecycle: encrypt → submit → compute → decrypt → verify
+</Accordion>
+
+<Accordion title="Three Decryption Patterns">
+  <CardGroup cols={3}>
+    <Card title="EIP-712 User Decrypt" icon="user-lock">
+      **For:** User-private data (my balance)
+      
+      User signs an EIP-712 message to prove ownership, then decrypts their own value off-chain.
+    </Card>
+    
+    <Card title="Public Decrypt" icon="globe">
+      **For:** Shared data (ratings, public tallies)
+      
+      Anyone can request decryption of values marked as publicly decryptable.
+    </Card>
+    
+    <Card title="Self-Relaying Decrypt" icon="arrows-rotate">
+      **For:** Revealed-after-deadline data (vote tallies, auction results)
+      
+      Contract marks values decryptable → client decrypts off-chain → submits proof on-chain for verification.
+    </Card>
+  </CardGroup>
+</Accordion>
+
+---
+
+### Lesson 3.3: Building the Private Voting dApp
+**Duration:** 75 minutes
+
+<Accordion title="Learning Objectives">
+  - Understand the full voting flow: create session → vote → request reveal → resolve tally
+  - Implement encrypted vote casting with FHE.select() for homomorphic tallying
+  - Build the three-phase reveal: requestTallyReveal → publicDecrypt → resolveTallyCallback
+  - Handle edge cases: already voted, session expired, unauthorized reveal
+</Accordion>
+
+<Accordion title="Vote Casting Flow">
+  **What happens when a user clicks YES or NO:**
+  
+  <Steps>
+    <Step title="User clicks Yes/No">
+      UI triggers vote handler with choice = "yes" or "no"
+    </Step>
+    
+    <Step title="Frontend encrypts">
+      `createEncryptedInput()` → `add32(1)` for Yes or `add32(0)` for No → `encrypt()`
+      
+      Returns `{ handles, inputProof }`
+    </Step>
+    
+    <Step title="Send transaction">
+      `contract.vote(sessionId, handles[0], inputProof)`
+    </Step>
+    
+    <Step title="On-chain processing">
+      - `FHE.fromExternal()` validates proof
+      - `FHE.eq(v, yes)` checks if vote is YES
+      - `FHE.select()` adds encrypted 1 to correct tally
+      - Updates both yesVotes and noVotes
+      - Calls `FHE.allowThis()` and `FHE.allow(creator)`
+      - Sets `hasVoted[sessionId][msg.sender] = true`
+    </Step>
+    
+    <Step title="Confirmation">
+      `VoteCast(sessionId, voter)` event emitted
+      
+      Tally updated homomorphically — no one sees plaintext votes
+    </Step>
+  </Steps>
+  
+  <Info>
+    Encryption happens in the browser. Only the handle and proof go on-chain.
+  </Info>
+</Accordion>
+
+<Accordion title="Session Creation and Reveal Flow">
+  **Create Session**
+  
+  1. Frontend calls `contract.createSession(durationSeconds)`
+  2. Contract pushes new Session with encrypted zero tallies
+  3. Emits `SessionCreated(sessionId, creator, endTime)`
+  4. Parse event from receipt to get sessionId and endTime for UI
+  
+  **Request Reveal (after endTime)**
+  
+  1. Only session creator calls `contract.requestTallyReveal(sessionId)`
+  2. Contract sets `revealRequested = true`
+  3. Calls `FHE.makePubliclyDecryptable()` on yesVotes and noVotes
+  4. Emits `TallyRevealRequested(sessionId, yesHandle, noHandle)`
+  
+  **Frontend Decryption**
+  
+  1. Listen for `TallyRevealRequested` event
+  2. Extract yesHandle and noHandle from event logs
+  3. Call `instance.publicDecrypt([yesHandle, noHandle])`
+  4. Returns plaintext counts + decryption proof
+  
+  **Resolve On-Chain**
+  
+  1. Encode counts: `abi.encode(yesCount, noCount)`
+  2. Call `contract.resolveTallyCallback(sessionId, cleartexts, proof)`
+  3. Contract runs `FHE.checkSignatures()` — reverts if invalid
+  4. Stores `revealedYes` and `revealedNo`
+  5. Sets `resolved = true`
+  6. Anyone can read results via `getSession(sessionId)`
+</Accordion>
+
+---
+
+### Lesson 3.4: Advanced FHEVM Patterns
+**Duration:** 75 minutes
+
+<Accordion title="Learning Objectives">
+  - Implement the ACL permission matrix pattern for multi-party encrypted state
+  - Build safe encrypted arithmetic with overflow/underflow protection
+  - Use sealed outputs and selective decryption for private return values
+  - Design encrypted state machines for complex multi-phase protocols
+  - Apply the v0.9+ two-phase reveal pattern
+  - Compose encrypted operations across multiple contracts with FHE.allowTransient
+</Accordion>
+
+<Accordion title="Pattern 1: ACL Permission Matrix">
+  **Every encrypted value has an Access Control List**
+  
+  <Warning>
+    Rule: After every operation that produces a NEW encrypted value, call `FHE.allowThis()` and `FHE.allow(value, user)` for every address that needs access.
+  </Warning>
+  
+  ```solidity
+  contract ConfidentialVault is ZamaEthereumConfig {
+      mapping(address => euint64) private balances;
+      address public auditor;
+  
+      function deposit(externalEuint64 encAmount, bytes calldata proof) external {
+          euint64 amount = FHE.fromExternal(encAmount, proof);
+  
+          if (!FHE.isInitialized(balances[msg.sender])) {
+              balances[msg.sender] = FHE.asEuint64(0);
+          }
+  
+          // FHE.add returns a NEW ciphertext — old permissions are gone!
+          balances[msg.sender] = FHE.add(balances[msg.sender], amount);
+  
+          // ── ACL Matrix: grant permissions on the NEW value ──
+          FHE.allowThis(balances[msg.sender]);       // Contract can use it
+          FHE.allow(balances[msg.sender], msg.sender); // Owner can decrypt
+          FHE.allow(balances[msg.sender], auditor);    // Auditor can view
+      }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Pattern 2: Safe Encrypted Arithmetic">
+  **FHE arithmetic does NOT revert on overflow/underflow — it silently wraps**
+  
+  <Warning>
+    `FHE.sub(3, 5)` on euint8 gives 254, not a revert!
+  </Warning>
+  
+  ```solidity
+  // UNSAFE: FHE.sub(balance, amount) wraps on underflow!
+  
+  // SAFE: Guard with FHE.select
+  function safeSubtract(euint64 a, euint64 b) internal returns (euint64) {
+      ebool sufficient = FHE.gte(a, b);
+      euint64 result = FHE.sub(a, b);
+      // If a < b, return 0 instead of wrapping
+      return FHE.select(sufficient, result, FHE.asEuint64(0));
+  }
+  
+  // SAFE: Conditional transfer (debit + credit atomically)
+  function conditionalTransfer(
+      euint64 senderBal,
+      euint64 receiverBal,
+      euint64 amount
+  ) internal returns (euint64 newSender, euint64 newReceiver) {
+      ebool sufficient = FHE.gte(senderBal, amount);
+      newSender = FHE.select(
+          sufficient,
+          FHE.sub(senderBal, amount),
+          senderBal  // No change if insufficient
+      );
+      newReceiver = FHE.select(
+          sufficient,
+          FHE.add(receiverBal, amount),
+          receiverBal  // No change if insufficient
+      );
+  }
+  ```
+</Accordion>
+
+<Accordion title="Pattern 5: The v0.9+ Two-Phase Reveal">
+  **The core decryption pattern for FHEVM v0.9+**
+  
+  ```mermaid
+  sequenceDiagram
+      participant User as dApp Client
+      participant Contract as Smart Contract
+      participant KMS as Zama KMS
+  
+      User->>Contract: 1. requestReveal()
+      Note over Contract: FHE.makePubliclyDecryptable(value)
+      Contract-->>User: 2. Emit handle via event
+  
+      User->>KMS: 3. publicDecrypt(handle)
+      KMS-->>User: 4. cleartext + decryptionProof
+  
+      User->>Contract: 5. resolveCallback(cleartext, proof)
+      Note over Contract: FHE.checkSignatures(handles, cleartext, proof)
+      Note over Contract: Store result, emit event
+  ```
+  
+  <Check>Phase 1: Contract calls `FHE.makePubliclyDecryptable()` and emits handle</Check>
+  <Check>Phase 2: Client calls `publicDecrypt(handle)` from @zama-fhe/relayer-sdk</Check>
+  <Check>Phase 3: Client submits cleartext + proof, contract verifies with `FHE.checkSignatures()`</Check>
+</Accordion>
+
+---
+
+## Homework: Build a Private Voting dApp
+
+**Estimated Time:** 8 hours
+
+**Objective:** Build a complete Private Voting dApp with React frontend, encrypted voting, and tally reveal functionality.
+
+### Requirements
+
+<AccordionGroup>
+  <Accordion title="1. React Voting UI">
+    Build a React frontend with:
+    - Session creation form
+    - Vote buttons (YES/NO)
+    - Results display
+    - Wallet connection
+  </Accordion>
+  
+  <Accordion title="2. Client-Side Encryption">
+    Integrate fhevmjs to encrypt votes in the browser before sending transactions.
+  </Accordion>
+  
+  <Accordion title="3. Contract Integration">
+    Connect frontend to SimpleVoting contract:
+    - Create sessions
+    - Cast votes
+    - Request and display tally reveals
+  </Accordion>
+  
+  <Accordion title="4. Error Handling">
+    Handle edge cases:
+    - Wallet not connected
+    - Wrong network
+    - Expired session
+    - Already voted
+    - Unauthorized reveal attempt
+  </Accordion>
+</AccordionGroup>
+
+### Reference Implementation
+
+<Info>
+  Study the Universal FHEVM SDK at [0xchriswilder/fhevm-react-template](https://github.com/0xchriswilder/fhevm-react-template) for working React, Next.js, and Vue showcases.
+</Info>
+
+### Submission
+
+<Steps>
+  <Step title="Fork starter">
+    Fork the provided starter repository
+  </Step>
+  <Step title="Implement">
+    Implement all required features
+  </Step>
+  <Step title="Document">
+    Include README.md with setup and run instructions
+  </Step>
+  <Step title="Submit">
+    Submit GitHub repository link — [Submission portal coming soon]
+    
+    Optional: Deploy to Vercel/Netlify and include live URL
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+<Card title="Continue to Week 4" icon="arrow-right" href="/curriculum/week-4">
+  Now that you can build full-stack confidential dApps, move on to Week 4 for advanced patterns, production deployment, and your capstone project.
+</Card>

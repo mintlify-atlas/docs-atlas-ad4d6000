@@ -1,0 +1,483 @@
+---
+title: Week 4 - Production & Capstone
+description: Advanced patterns, production deployment, and capstone project
+icon: trophy
+---
+
+# Week 4: Production & Capstone
+
+**Subtitle:** Advanced patterns, production deployment, and capstone project
+
+**Estimated Time:** 15 hours of lessons + 15 hours capstone project
+
+## Objectives
+
+<CardGroup cols={2}>
+  <Card title="Advanced Patterns" icon="brain">
+    Implement sealed auctions, private tokens, confidential governance
+  </Card>
+  <Card title="Production Contracts" icon="code">
+    Break down production contracts step-by-step with gas optimization
+  </Card>
+  <Card title="Security & Deployment" icon="shield">
+    Understand production deployment, security, and monitoring
+  </Card>
+  <Card title="Capstone Project" icon="trophy">
+    Complete a production-quality confidential dApp
+  </Card>
+</CardGroup>
+
+## Milestone
+
+<Check>Completed capstone project with smart contract, frontend, tests, and documentation</Check>
+<Check>Production-quality code ready for deployment</Check>
+<Check>Deep understanding of FHEVM security and best practices</Check>
+
+---
+
+## Lessons
+
+### Lesson 4.1: Advanced FHEVM Applications
+**Duration:** 60 minutes
+
+<Accordion title="Learning Objectives">
+  - Design a sealed-bid auction contract with encrypted bids
+  - Implement private ERC-20 token transfers with encrypted balances
+  - Architect a confidential DAO voting system with weighted votes
+</Accordion>
+
+<Accordion title="Sealed-Bid Auction (BlindAuction)">
+  **Three-Phase State Machine:** Bidding → Reveal → Settlement
+  
+  ```solidity
+  contract BlindAuction is ZamaEthereumConfig {
+      struct Auction {
+          address creator;
+          uint256 biddingEndTime;
+          uint256 revealEndTime;
+          euint64 highestBid;        // ENCRYPTED
+          address highestBidder;
+          uint64 revealedHighestBid;
+          bool ended;
+      }
+  
+      // Phase 1: Place encrypted bid
+      function placeBid(
+          uint256 auctionId,
+          externalEuint64 encryptedBid,
+          bytes calldata inputProof
+      ) external {
+          euint64 bid = FHE.fromExternal(encryptedBid, inputProof);
+  
+          if (FHE.isInitialized(auction.highestBid)) {
+              ebool isHigher = FHE.gt(bid, auction.highestBid);
+              auction.highestBid = FHE.select(isHigher, bid, auction.highestBid);
+          } else {
+              auction.highestBid = bid;  // First bid
+          }
+  
+          FHE.allowThis(auction.highestBid);
+      }
+  
+      // Phase 2: Request reveal
+      function requestReveal(uint256 auctionId) external {
+          auction.highestBid = FHE.makePubliclyDecryptable(auction.highestBid);
+          emit RevealRequested(auctionId, FHE.toBytes32(auction.highestBid));
+      }
+  
+      // Phase 3: Settlement with proof verification
+      function endAuction(
+          uint256 auctionId,
+          bytes memory cleartexts,
+          bytes memory decryptionProof
+      ) external {
+          bytes32[] memory handlesList = new bytes32[](1);
+          handlesList[0] = FHE.toBytes32(auction.highestBid);
+          FHE.checkSignatures(handlesList, cleartexts, decryptionProof);
+  
+          auction.revealedHighestBid = abi.decode(cleartexts, (uint64));
+          auction.ended = true;
+      }
+  }
+  ```
+  
+  **Key Design Decisions:**
+  
+  <Check>`highestBid` starts uninitialized — use `FHE.isInitialized()` to check</Check>
+  <Check>`FHE.select()` updates highest bid without revealing either value</Check>
+  <Check>ACL permissions re-granted after every `FHE.select()` (new ciphertext)</Check>
+  <Check>v0.9+ self-relaying: `makePubliclyDecryptable` → `checkSignatures`</Check>
+</Accordion>
+
+<Accordion title="ERC7984 Confidential Token (OpenZeppelin)">
+  **The official OpenZeppelin standard for confidential tokens**
+  
+  All balances are `euint64`, transfers use encrypted amounts with proof verification, and only account holders can decrypt their own balance.
+  
+  ```solidity
+  contract ERC7984Mock is ERC7984, ZamaEthereumConfig, Ownable {
+      // Hook: Called on every mint / burn / transfer
+      function _update(
+          address from, address to, euint64 amount
+      ) internal virtual override returns (euint64 transferred) {
+          transferred = super._update(from, to, amount);
+          // Grant owner access to total supply (for monitoring)
+          FHE.allow(confidentialTotalSupply(), _OWNER);
+      }
+  
+      // Mint with external encrypted input (production)
+      function $_mint(
+          address to, externalEuint64 encryptedAmount, bytes calldata inputProof
+      ) public onlyOwner returns (euint64) {
+          euint64 internalAmount = FHE.fromExternal(encryptedAmount, inputProof);
+          return _mint(to, internalAmount);
+      }
+  
+      // Transfer with external encrypted input
+      function $_transfer(
+          address from, address to,
+          externalEuint64 encryptedAmount, bytes calldata inputProof
+      ) public returns (euint64) {
+          return _transfer(from, to, FHE.fromExternal(encryptedAmount, inputProof));
+      }
+  }
+  ```
+  
+  **Key Concepts:**
+  
+  <Check>All balances are `euint64` — chain never stores plaintext</Check>
+  <Check>`FHE.fromExternal()` converts client-side encryption to on-chain format</Check>
+  <Check>`_update()` hook runs on every mint/burn/transfer for ACL management</Check>
+  <Check>Two mint flavors: production (with proof) and testing (plaintext)</Check>
+</Accordion>
+
+---
+
+### Lesson 4.2: Contract Deep Dive & Gas Optimization
+**Duration:** 60 minutes
+
+<Accordion title="Learning Objectives">
+  - Understand why sealed-bid auctions solve front-running and shill bidding
+  - Trace the three-phase state machine and key FHE operations
+  - See why incremental winner tracking is used instead of batch comparison
+  - Apply gas optimization strategies: type selection, batching, minimal decryption
+</Accordion>
+
+<Accordion title="Why Sealed-Bid Auctions?">
+  In traditional on-chain auctions, all bids are visible. This creates:
+  
+  <Warning>Front-running — Bots outbid you after seeing your transaction</Warning>
+  <Warning>Strategic underbidding — Everyone knows the current highest bid</Warning>
+  <Warning>Shill bidding — Fake bids to drive up prices</Warning>
+  <Warning>Bid sniping — Last-second bids based on visible competition</Warning>
+  
+  **Sealed-bid auctions solve these:**
+  
+  <Check>Bids are encrypted until reveal — nobody can see them during bidding</Check>
+  <Check>Winner determined by `FHE.gt()` comparison without revealing values</Check>
+  <Check>Only the winning bid is ever decrypted and revealed</Check>
+  
+  <Info>
+    This pattern is used in production by **Zama Auction**, the first app on Zama Protocol mainnet.
+  </Info>
+</Accordion>
+
+<Accordion title="The Three-Phase State Machine">
+  **Phase 1: Bidding**
+  
+  Users place encrypted bids. The contract tracks the highest bid using `FHE.gt()` + `FHE.select()` without revealing any value.
+  
+  **Phase 2: Closed**
+  
+  Bidding ends. The auctioneer receives permission to decrypt the winner (`FHE.allow` or `makePubliclyDecryptable`).
+  
+  **Phase 3: Revealed**
+  
+  The auctioneer publishes winner and winning bid on-chain after proof verification.
+  
+  <Info>
+    The state machine is a security boundary: during Bidding, not even the auctioneer can see the highest bid.
+  </Info>
+</Accordion>
+
+<Accordion title="Key FHE Operations">
+  **FHE.gt(bid, highestBid)**
+  
+  Returns an `ebool` — "is this bid higher?" — without revealing either number.
+  
+  **FHE.select(isHigher, bid, highestBid)**
+  
+  Picks the new highest bid based on the encrypted condition. No information leaked.
+  
+  **FHE.isInitialized(highestBid)**
+  
+  Used to handle the first bid: no comparison needed until there is a previous highest.
+  
+  **The New-Handle Rule**
+  
+  After any FHE operation that creates a new handle (e.g., `FHE.select`), you **must** call `FHE.allowThis()` again on the new handle.
+  
+  ```solidity
+  auction.highestBid = FHE.select(isHigher, bid, auction.highestBid);
+  FHE.allowThis(auction.highestBid);  // REQUIRED!
+  ```
+</Accordion>
+
+<Accordion title="Why Incremental Tracking?">
+  **Question:** Why update highest bid on every `placeBid` instead of comparing all bids when the auction closes?
+  
+  **Answer 1: Gas Distribution**
+  
+  FHE comparisons are expensive. Incremental approach spreads cost across all `placeBid` transactions instead of one huge `closeAuction`.
+  
+  **Answer 2: Scalability**
+  
+  With many bidders, a batch comparison could exceed block gas limit. Each `placeBid` does O(1) FHE work.
+</Accordion>
+
+<Accordion title="Gas Optimization Strategies">
+  **1. Use the Smallest Type**
+  
+  `euint8` operations are cheaper than `euint64`. Only use larger types when needed.
+  
+  **2. Minimize Decryption Requests**
+  
+  Each decryption has overhead. Batch multiple values into a single request.
+  
+  **3. Batch Operations**
+  
+  Combine multiple operations to reduce the number of FHE calls.
+  
+  **4. Avoid Unnecessary Permissions**
+  
+  Only call `FHE.allowThis()` and `FHE.allow()` when you need decryption access.
+  
+  **5. Cache Constants**
+  
+  If you use `FHE.asEuint8(0)` or `FHE.asEuint8(1)` frequently, cache them in state.
+</Accordion>
+
+---
+
+### Lesson 4.3: Production Deployment & Security
+**Duration:** 45 minutes
+
+<Accordion title="Learning Objectives">
+  - Complete a security checklist for FHEVM contracts
+  - Deploy to production (mainnet) with proper configuration
+  - Set up monitoring and alerting for deployed contracts
+  - Identify next steps and advanced resources for continued learning
+</Accordion>
+
+<Accordion title="FHEVM Security Checklist">
+  <Steps>
+    <Step title="Access Control">
+      Every decryption request must be gated behind proper access control (`onlyOwner`, role-based, etc.)
+    </Step>
+    
+    <Step title="Permission Management">
+      Audit every `FHE.allowThis()` and `FHE.allow()` call. Ensure no unauthorized addresses can decrypt.
+    </Step>
+    
+    <Step title="Input Validation">
+      Always use `FHE.fromExternal()` with proof verification. Never accept raw encrypted data without proof.
+    </Step>
+    
+    <Step title="State Consistency">
+      Ensure encrypted state is updated atomically. Use the check-effects-interactions pattern.
+    </Step>
+    
+    <Step title="Proof Verification">
+      In v0.9+ resolve callbacks, always call `FHE.checkSignatures()` before using decrypted values.
+    </Step>
+    
+    <Step title="Gas Limits">
+      Test gas consumption for all functions. FHE operations are more expensive than standard operations.
+    </Step>
+    
+    <Step title="Upgrade Path">
+      Consider using proxy patterns if you need contract upgradeability.
+    </Step>
+    
+    <Step title="Testing">
+      Achieve >90% test coverage including edge cases and failure scenarios.
+    </Step>
+  </Steps>
+  
+  <Warning>
+    **Security is non-negotiable for production FHEVM contracts.** Test on Sepolia before deploying to mainnet, and consider a professional audit for high-value contracts.
+  </Warning>
+</Accordion>
+
+<Accordion title="Next Steps & Resources">
+  **Congratulations on completing the FHEVM Bootcamp!**
+  
+  **Deploy to Production**
+  
+  Use the Zama mainnet when available, or continue building on Sepolia testnet.
+  
+  **Join the Community**
+  
+  - [Discord](https://discord.gg/zama)
+  - [GitHub](https://github.com/zama-ai)
+  - Zama forum
+  
+  **Explore Templates**
+  
+  - [zama-ai/fhevm-hardhat-template](https://github.com/zama-ai/fhevm-hardhat-template) — Official Hardhat template
+  - [0xchriswilder/fhevm-react-template](https://github.com/0xchriswilder/fhevm-react-template) — Universal FHEVM SDK
+  
+  **Build & Share**
+  
+  Create your own FHEVM projects and share them with the community. Bounties and grants are available.
+  
+  **Stay Updated**
+  
+  Follow Zama on Twitter and subscribe to their newsletter for the latest updates.
+</Accordion>
+
+---
+
+## Capstone Project
+
+**Estimated Time:** 15 hours
+
+**Objective:** Build a production-quality confidential dApp demonstrating end-to-end FHEVM proficiency.
+
+### Choose Your Track
+
+<CardGroup cols={3}>
+  <Card title="Track A: DeFi" icon="coins">
+    **Sealed-Bid Auction**
+    
+    Extend the BlindAuction with:
+    - Multiple simultaneous auctions
+    - Bid deposit/refund system
+    - Minimum bid threshold
+    - Creator fee on winning bid
+    
+    Reference: Lessons 4.1 and 4.2
+  </Card>
+  
+  <Card title="Track B: Governance" icon="landmark">
+    **Weighted Voting**
+    
+    Build a governance system where:
+    - Token holders vote with encrypted weight
+    - Multiple proposals active simultaneously
+    - Quorum threshold (minimum total weight)
+    - Delegation: `allow(votingPower, delegateAddress)`
+  </Card>
+  
+  <Card title="Track C: Identity" icon="id-card">
+    **Private Credential Verification**
+    
+    Create an identity system where:
+    - Users store encrypted attributes
+    - Prove attribute ranges without revealing values
+    - Selective disclosure to verifiers
+    - Credential revocation
+  </Card>
+</CardGroup>
+
+### Requirements
+
+<AccordionGroup>
+  <Accordion title="1. Smart Contract (25%)">
+    Write a complete, well-tested FHEVM smart contract for your chosen track.
+    
+    Must compile and deploy successfully to Sepolia.
+  </Accordion>
+  
+  <Accordion title="2. Frontend Application (25%)">
+    Build a React frontend that integrates with your contract.
+    
+    Must handle wallet connection, encryption, and all contract interactions.
+  </Accordion>
+  
+  <Accordion title="3. Test Suite (15%)">
+    Write comprehensive Hardhat tests with >80% coverage.
+    
+    Include unit tests, integration tests, and edge case tests.
+  </Accordion>
+  
+  <Accordion title="4. Documentation (15%)">
+    Write a README with:
+    - Project overview
+    - Architecture diagram
+    - Setup instructions
+    - Usage guide
+    - Security considerations
+  </Accordion>
+  
+  <Accordion title="5. Concept & Design (20%)">
+    Demonstrate:
+    - Clear concept with privacy rationale
+    - Sound architecture
+    - Appropriate use of FHEVM patterns
+  </Accordion>
+</AccordionGroup>
+
+### Grading Criteria
+
+| Criterion | Weight | Excellence (90-100%) |
+|-----------|--------|----------------------|
+| Concept & Design | 20% | Novel concept, excellent architecture, clear privacy rationale |
+| Smart Contract | 25% | Production-quality, proper permissions, gas-optimized |
+| Frontend | 25% | Polished, responsive UI with excellent UX and error handling |
+| Testing | 15% | >90% coverage, tests for edge cases and failure modes |
+| Documentation | 15% | Comprehensive README with diagrams, GIFs, clear instructions |
+
+### Submission
+
+<Steps>
+  <Step title="Use Lessons 4.1 & 4.2">
+    Reference the Production Contract Library and BlindAuction walkthrough
+  </Step>
+  
+  <Step title="Create repository">
+    Create a GitHub repository for your capstone project
+  </Step>
+  
+  <Step title="Include all code">
+    Contracts, tests, frontend, and comprehensive README
+  </Step>
+  
+  <Step title="Deploy to Sepolia">
+    Include the contract address in your README
+  </Step>
+  
+  <Step title="Optional: Deploy frontend">
+    Deploy to Vercel/Netlify for bonus points
+  </Step>
+  
+  <Step title="Submit">
+    Submit GitHub repository link — [Submission portal coming soon]
+  </Step>
+</Steps>
+
+---
+
+## Bootcamp Complete!
+
+<Check>You've mastered FHEVM fundamentals</Check>
+<Check>You can write, test, and deploy confidential smart contracts</Check>
+<Check>You can build full-stack confidential dApps</Check>
+<Check>You understand production patterns and security best practices</Check>
+
+**What's next?**
+
+<CardGroup cols={2}>
+  <Card title="Deploy to Production" icon="rocket">
+    Take your capstone project to mainnet when Zama launches
+  </Card>
+  <Card title="Join the Community" icon="users">
+    Connect with other FHEVM developers on Discord and GitHub
+  </Card>
+  <Card title="Build Something New" icon="lightbulb">
+    Create novel confidential applications and apply for grants
+  </Card>
+  <Card title="Teach Others" icon="graduation-cap">
+    Run your own FHEVM workshop using this curriculum
+  </Card>
+</CardGroup>

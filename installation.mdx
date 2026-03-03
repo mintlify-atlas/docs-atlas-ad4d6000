@@ -1,0 +1,770 @@
+---
+title: 'Installation'
+description: 'Complete installation guide for the FHEVM Bootcamp with prerequisites, environment setup, and troubleshooting'
+---
+
+## Overview
+
+This guide provides comprehensive instructions for installing and configuring the FHEVM Developer Bootcamp on your local machine. Follow these steps to set up your complete development environment.
+
+<Info>
+  **Looking for a quick setup?** Check out the [Quick Start](/quickstart) guide for a streamlined installation process.
+</Info>
+
+## System Requirements
+
+Before installing the bootcamp, ensure your system meets these requirements:
+
+### Hardware Requirements
+
+- **RAM**: Minimum 4GB, recommended 8GB+
+- **Storage**: At least 1GB free disk space
+- **CPU**: Any modern processor (2+ cores recommended)
+- **Network**: Stable internet connection for package installation
+
+### Operating System Support
+
+<Tabs>
+  <Tab title="macOS">
+    - macOS 10.15 (Catalina) or later
+    - Both Intel and Apple Silicon (M1/M2/M3) supported
+    - Xcode Command Line Tools (installed automatically with Homebrew)
+  </Tab>
+  <Tab title="Linux">
+    - Ubuntu 20.04 LTS or later
+    - Debian 10 or later
+    - Fedora 34 or later
+    - Other distributions with glibc 2.28+
+  </Tab>
+  <Tab title="Windows">
+    - Windows 10 version 2004 or later
+    - Windows 11 (all versions)
+    - **Recommended**: Use Windows Subsystem for Linux (WSL 2) for best compatibility
+  </Tab>
+</Tabs>
+
+## Prerequisites
+
+### 1. Node.js and npm
+
+The bootcamp requires **Node.js 18.x or higher**.
+
+<Steps>
+  <Step title="Check Current Version">
+    Verify if Node.js is already installed:
+
+    ```bash
+    node --version
+    npm --version
+    ```
+
+    Expected output:
+    ```bash
+    v18.x.x  # or v20.x.x, v22.x.x
+    9.x.x    # or 10.x.x
+    ```
+  </Step>
+
+  <Step title="Install Node.js (if needed)">
+    <Tabs>
+      <Tab title="Using nvm (Recommended)">
+        Install Node Version Manager for easy version switching:
+
+        ```bash
+        # Install nvm
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+        # Reload shell configuration
+        source ~/.bashrc  # or ~/.zshrc on macOS
+
+        # Install Node.js LTS
+        nvm install --lts
+        nvm use --lts
+        ```
+      </Tab>
+      <Tab title="macOS (Homebrew)">
+        ```bash
+        # Install Homebrew if not already installed
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+        # Install Node.js
+        brew install node@20
+        ```
+      </Tab>
+      <Tab title="Ubuntu/Debian">
+        ```bash
+        # Update package index
+        sudo apt update
+
+        # Install Node.js from NodeSource
+        curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        ```
+      </Tab>
+      <Tab title="Windows">
+        Download the installer from [nodejs.org](https://nodejs.org/) and run it, or use Chocolatey:
+
+        ```powershell
+        # Using Chocolatey
+        choco install nodejs-lts
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Verify Installation">
+    Confirm Node.js and npm are installed correctly:
+
+    ```bash
+    node --version && npm --version
+    ```
+  </Step>
+</Steps>
+
+### 2. Git Version Control
+
+Git is required to clone the bootcamp repository.
+
+<CodeGroup>
+```bash macOS
+# Using Homebrew
+brew install git
+```
+
+```bash Ubuntu/Debian
+sudo apt update
+sudo apt install git
+```
+
+```bash Fedora
+sudo dnf install git
+```
+
+```powershell Windows
+# Using Chocolatey
+choco install git
+
+# Or download from https://git-scm.com/download/win
+```
+</CodeGroup>
+
+Verify installation:
+```bash
+git --version
+```
+
+### 3. Code Editor (Recommended)
+
+While any text editor works, we recommend **Visual Studio Code** with these extensions:
+
+- **ES7+ React/Redux/React-Native snippets** - Code snippets
+- **Tailwind CSS IntelliSense** - Tailwind autocomplete
+- **ESLint** - Code quality
+- **Prettier** - Code formatting
+- **Solidity** (if you plan to modify smart contracts) - Solidity syntax
+
+```bash
+# Install VS Code on macOS
+brew install --cask visual-studio-code
+
+# Install VS Code on Ubuntu
+sudo snap install code --classic
+```
+
+## Installation Steps
+
+### Step 1: Clone the Repository
+
+Clone the bootcamp repository to your local machine:
+
+```bash
+# Clone via HTTPS
+git clone https://github.com/your-org/fhevm-bootcamp.git
+
+# Or clone via SSH (if you have SSH keys configured)
+git clone git@github.com:your-org/fhevm-bootcamp.git
+
+# Navigate to the project directory
+cd fhevm-bootcamp
+```
+
+<Note>
+  Replace `your-org/fhevm-bootcamp` with the actual repository URL. If you're running this for your own community, consider forking the repository first.
+</Note>
+
+### Step 2: Install Dependencies
+
+Install all required npm packages:
+
+```bash
+npm install
+```
+
+This will install:
+- **82 direct dependencies** including React, TypeScript, Vite, wagmi, fhevmjs, and more
+- All transitive dependencies (approximately 350MB total)
+
+<Accordion title="Installation takes too long?">
+  If `npm install` is slow, you can try alternative package managers:
+
+  **Using pnpm (faster):**
+  ```bash
+  npm install -g pnpm
+  pnpm install
+  ```
+
+  **Using bun (fastest):**
+  ```bash
+  curl -fsSL https://bun.sh/install | bash
+  bun install
+  ```
+
+  Note: The project includes a `bun.lockb` file, so Bun is fully supported.
+</Accordion>
+
+### Step 3: Environment Configuration
+
+Configure environment variables for the bootcamp:
+
+<Steps>
+  <Step title="Copy Environment Template">
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+
+  <Step title="Edit Environment Variables">
+    Open `.env` in your editor and configure the following:
+
+    ```bash .env
+    # Network Configuration
+    VITE_RPC_URL=https://devnet.zama.ai
+    VITE_CHAIN_ID=8009
+    VITE_NETWORK_NAME=Zama Devnet
+
+    # Contract Addresses (update if deploying your own contracts)
+    VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
+    
+    # Use mock FHE client for tutorials (recommended for learning)
+    VITE_USE_MOCKS=true
+
+    # App Metadata (customize for your bootcamp)
+    VITE_APP_NAME=FHEVM Developer Bootcamp
+    VITE_APP_DESCRIPTION=Learn to build confidential applications on Zama Protocol
+    VITE_GITHUB_REPO=https://github.com/your-org/fhevm-bootcamp
+    ```
+  </Step>
+
+  <Step title="Understanding Environment Variables">
+    <Accordion title="VITE_RPC_URL">
+      **Purpose**: RPC endpoint for blockchain connection
+      
+      **Options**:
+      - `https://devnet.zama.ai` - Zama's development network (default)
+      - `https://rpc.sepolia.org` - Ethereum Sepolia testnet
+      - Custom RPC endpoint for your network
+    </Accordion>
+
+    <Accordion title="VITE_USE_MOCKS">
+      **Purpose**: Toggle between mock and real FHE client
+      
+      **Values**:
+      - `true` - Use mock FHE client (recommended for tutorials)
+      - `false` - Use real fhevmjs library (requires proper network setup)
+      
+      The mock client simulates encryption/decryption without requiring a live FHEVM network, perfect for learning.
+    </Accordion>
+
+    <Accordion title="VITE_CONTRACT_ADDRESS">
+      **Purpose**: Deployed smart contract address
+      
+      Leave as `0x0000...` for tutorial mode. Update with actual deployed contract address when ready for live interactions.
+    </Accordion>
+  </Step>
+</Steps>
+
+<Warning>
+  **Never commit your `.env` file** to version control if it contains sensitive information like private keys or API keys. The `.gitignore` is already configured to exclude it.
+</Warning>
+
+### Step 4: Verify Installation
+
+Test that everything is set up correctly:
+
+```bash
+# Start the development server
+npm run dev
+```
+
+You should see:
+
+```bash
+VITE v5.4.19  ready in 342 ms
+
+➜  Local:   http://localhost:8080/
+➜  Network: http://192.168.1.100:8080/
+➜  press h + enter to show help
+```
+
+Open [http://localhost:8080](http://localhost:8080) in your browser. You should see the bootcamp dashboard.
+
+## Post-Installation Configuration
+
+### TypeScript Configuration
+
+The bootcamp uses TypeScript with these configurations:
+
+<Tabs>
+  <Tab title="tsconfig.json (Root)">
+    ```json
+    {
+      "files": [],
+      "references": [
+        { "path": "./tsconfig.app.json" },
+        { "path": "./tsconfig.node.json" }
+      ],
+      "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+          "@/*": ["./src/*"]  // Enables @ imports
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="tsconfig.app.json">
+    Application-specific TypeScript settings for React components and business logic.
+  </Tab>
+  <Tab title="tsconfig.node.json">
+    TypeScript settings for Node.js configuration files (Vite config, etc.).
+  </Tab>
+</Tabs>
+
+### Vite Configuration Details
+
+The `vite.config.ts` includes important configurations:
+
+```typescript vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+
+export default defineConfig(({ mode }) => ({
+  server: {
+    host: "::",      // Listen on all network interfaces
+    port: 8080,      // Development server port
+  },
+  plugins: [
+    react(),  // React with SWC for fast refresh
+    nodePolyfills({
+      // Required for fhevmjs and ethers.js compatibility
+      include: ["buffer", "process", "util", "events", "stream"],
+      globals: { Buffer: true, global: true, process: true },
+      protocolImports: true,
+    }),
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  define: {
+    global: "globalThis",
+    "process.env": {},
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: { global: "globalThis" },
+    },
+  },
+}));
+```
+
+<Info>
+  **Why Node.js polyfills?** The fhevmjs library and blockchain tools like ethers.js were designed for Node.js. The polyfills allow these libraries to work in the browser.
+</Info>
+
+### Tailwind CSS Configuration
+
+The bootcamp uses Tailwind CSS with custom theme extensions:
+
+```typescript tailwind.config.ts
+import type { Config } from "tailwindcss";
+
+export default {
+  darkMode: ["class"],
+  content: [
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
+    "./src/**/*.{ts,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        // ... more theme colors
+      },
+      // Custom animations, fonts, etc.
+    },
+  },
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"),
+  ],
+} satisfies Config;
+```
+
+## Development Workflow
+
+### Available Scripts
+
+```bash
+# Development
+npm run dev              # Start dev server with hot reload
+npm run dev -- --port 3000  # Start on custom port
+
+# Production Build
+npm run build            # Create optimized production build
+npm run build:dev        # Development mode build (with source maps)
+npm run preview          # Preview production build locally
+
+# Code Quality
+npm run lint             # Run ESLint
+npm run lint -- --fix    # Auto-fix linting issues
+
+# Presentation Slides
+npm run build:slides     # Generate HTML slides from markdown
+```
+
+### Project Structure
+
+Understanding the codebase organization:
+
+```
+fhevm-bootcamp/
+├── public/                    # Static assets
+│   ├── slides/               # Week presentation slides (Marp)
+│   └── _redirects            # Netlify SPA routing config
+├── src/
+│   ├── components/
+│   │   ├── layout/           # AppBar, Navigation, Sidebar
+│   │   ├── lesson/           # Lesson sections, quizzes, objectives
+│   │   ├── homework/         # Grading rubrics, code templates
+│   │   └── ui/               # 50+ shadcn/ui components
+│   ├── data/
+│   │   ├── curriculum.ts     # Complete 4-week curriculum data
+│   │   └── contractExamples.ts  # Contract library
+│   ├── hooks/                # Custom React hooks
+│   ├── lib/
+│   │   ├── fhe/              # FHE client integration
+│   │   └── wallet/           # Wagmi wallet configuration
+│   ├── locales/              # i18n translations (en, fr, zh)
+│   ├── pages/                # Route pages (Dashboard, Lessons, etc.)
+│   ├── state/                # Zustand stores
+│   ├── App.tsx               # Root app component
+│   ├── main.tsx              # App entry point
+│   └── index.css             # Global styles
+├── vote-app/                  # Sample voting dApp (Week 3 project)
+│   ├── contracts/            # Solidity smart contracts
+│   ├── types/                # TypeScript contract types
+│   └── hardhat.config.js     # Hardhat configuration
+├── .env.example              # Environment variable template
+├── package.json              # Dependencies and scripts
+├── tsconfig.json             # TypeScript configuration
+├── vite.config.ts            # Vite bundler config
+└── tailwind.config.ts        # Tailwind CSS config
+```
+
+## Troubleshooting
+
+### Common Installation Issues
+
+<AccordionGroup>
+  <Accordion title="npm install fails with EACCES permission error">
+    **Problem**: Permission denied when installing global packages
+
+    **Solution**: Fix npm permissions or use a Node version manager:
+
+    ```bash
+    # Option 1: Fix npm permissions
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+
+    # Option 2: Use nvm (recommended)
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    nvm install --lts
+    ```
+  </Accordion>
+
+  <Accordion title="Module not found: Can't resolve '@/...'">
+    **Problem**: TypeScript path aliases not working
+
+    **Solution**: Ensure `tsconfig.json` has the correct path configuration:
+
+    ```json
+    {
+      "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+          "@/*": ["./src/*"]
+        }
+      }
+    }
+    ```
+
+    Then restart your development server and IDE.
+  </Accordion>
+
+  <Accordion title="Vite build fails with 'Buffer is not defined'">
+    **Problem**: Node.js polyfills not loaded
+
+    **Solution**: Verify `vite-plugin-node-polyfills` is installed and configured:
+
+    ```bash
+    npm install vite-plugin-node-polyfills --save-dev
+    ```
+
+    Check `vite.config.ts` includes the plugin with correct options (see configuration above).
+  </Accordion>
+
+  <Accordion title="Port 8080 already in use">
+    **Problem**: Another service is using port 8080
+
+    **Solution**: Kill the process or use a different port:
+
+    ```bash
+    # Find process using port 8080 (macOS/Linux)
+    lsof -ti:8080
+    
+    # Kill the process
+    kill -9 $(lsof -ti:8080)
+
+    # Or start on a different port
+    npm run dev -- --port 3000
+    ```
+  </Accordion>
+
+  <Accordion title="React hooks error or duplicate React">
+    **Problem**: Multiple React versions in node_modules
+
+    **Solution**: Clear dependencies and reinstall:
+
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+
+    If using npm workspaces or linking packages, ensure React is de-duplicated:
+
+    ```bash
+    npm dedupe
+    ```
+  </Accordion>
+
+  <Accordion title="Tailwind styles not applying">
+    **Problem**: Tailwind CSS not processing styles
+
+    **Solution**:
+    1. Verify `tailwind.config.ts` has correct content paths
+    2. Ensure `@tailwind` directives are in `src/index.css`:
+       ```css
+       @tailwind base;
+       @tailwind components;
+       @tailwind utilities;
+       ```
+    3. Restart the dev server (Ctrl+C, then `npm run dev`)
+  </Accordion>
+
+  <Accordion title="Type errors with fhevmjs or ethers">
+    **Problem**: TypeScript can't find type definitions
+
+    **Solution**: Install missing type definitions:
+
+    ```bash
+    npm install --save-dev @types/node
+    ```
+
+    If errors persist, add to `tsconfig.json`:
+
+    ```json
+    {
+      "compilerOptions": {
+        "skipLibCheck": true
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Platform-Specific Issues
+
+<Tabs>
+  <Tab title="Windows">
+    **Issue**: Line ending problems
+    ```bash
+    # Configure git to handle line endings
+    git config --global core.autocrlf true
+    ```
+
+    **Issue**: Long path errors
+    ```powershell
+    # Enable long paths (requires admin)
+    New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+    ```
+
+    **Recommendation**: Use WSL 2 for best compatibility
+  </Tab>
+  <Tab title="macOS">
+    **Issue**: Xcode Command Line Tools required
+    ```bash
+    xcode-select --install
+    ```
+
+    **Issue**: Homebrew permissions
+    ```bash
+    sudo chown -R $(whoami) $(brew --prefix)/*
+    ```
+  </Tab>
+  <Tab title="Linux">
+    **Issue**: Missing build tools
+    ```bash
+    # Ubuntu/Debian
+    sudo apt-get install build-essential
+
+    # Fedora
+    sudo dnf groupinstall "Development Tools"
+    ```
+
+    **Issue**: Node.js version from default repos is too old
+    ```bash
+    # Use NodeSource for latest versions
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    ```
+  </Tab>
+</Tabs>
+
+## Updating the Bootcamp
+
+To update to the latest version:
+
+```bash
+# Pull latest changes from repository
+git pull origin main
+
+# Update dependencies
+npm install
+
+# Rebuild (if needed)
+npm run build
+```
+
+<Warning>
+  If you've made local customizations, use `git stash` before pulling to avoid conflicts:
+  
+  ```bash
+  git stash
+  git pull origin main
+  git stash pop
+  ```
+</Warning>
+
+## Production Deployment
+
+When ready to deploy your bootcamp:
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+This creates an optimized build in the `dist/` directory.
+
+### Deploy to Static Hosting
+
+The bootcamp works with any static hosting service:
+
+<Tabs>
+  <Tab title="Netlify">
+    ```bash
+    # Install Netlify CLI
+    npm install -g netlify-cli
+
+    # Deploy
+    netlify deploy --prod --dir=dist
+    ```
+
+    The `public/_redirects` file handles SPA routing automatically.
+  </Tab>
+  <Tab title="Vercel">
+    ```bash
+    # Install Vercel CLI
+    npm install -g vercel
+
+    # Deploy
+    vercel --prod
+    ```
+  </Tab>
+  <Tab title="GitHub Pages">
+    ```bash
+    # Build with correct base path
+    npm run build -- --base=/fhevm-bootcamp/
+
+    # Deploy to gh-pages branch
+    npx gh-pages -d dist
+    ```
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Start Learning"
+    icon="book-open"
+    href="/curriculum/week-1/lesson-1-1"
+  >
+    Begin Week 1 and start your FHEVM journey
+  </Card>
+  <Card
+    title="Curriculum Overview"
+    icon="map"
+    href="/curriculum/overview"
+  >
+    Explore the complete 4-week learning path
+  </Card>
+  <Card
+    title="Instructor Guide"
+    icon="chalkboard-user"
+    href="/instructor/guide"
+  >
+    Learn how to run this bootcamp for your community
+  </Card>
+  <Card
+    title="Contributing"
+    icon="code-pull-request"
+    href="/contributing/overview"
+  >
+    Help improve the bootcamp for future learners
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you encounter issues not covered in this guide:
+
+- **Check the Console**: Browser DevTools (F12) often show helpful error messages
+- **Search Issues**: Check the [GitHub Issues](https://github.com/your-org/fhevm-bootcamp/issues) for similar problems
+- **Community Support**: Join the Zama Discord or community forums
+- **Report Bugs**: Open a new issue with reproduction steps and system details
+
+<Tip>
+  Include your Node.js version (`node --version`), operating system, and error messages when asking for help.
+</Tip>

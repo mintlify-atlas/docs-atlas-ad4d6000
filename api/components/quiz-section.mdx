@@ -1,0 +1,361 @@
+---
+title: QuizSection
+description: Interactive quiz component with question rendering, answer validation, and score tracking
+---
+
+## Overview
+
+The `QuizSection` component provides an interactive quiz experience with multiple-choice questions, instant feedback, explanations, and score tracking.
+
+**Location:** `src/components/lesson/QuizSection.tsx`
+
+## Features
+
+- Multiple-choice question interface
+- Instant answer validation with visual feedback
+- Detailed explanations for correct/incorrect answers
+- Progress tracking (current question / total)
+- Score calculation with pass/fail determination
+- Quiz reset/retry functionality
+- Animated transitions and feedback
+
+## Props
+
+<ParamField path="quiz" type="Quiz" required>
+  The quiz configuration object containing questions and settings.
+  
+  ```tsx
+  interface Quiz {
+    title: string;
+    description: string;
+    questions: QuizQuestion[];
+    passingScore: number; // percentage (e.g., 70)
+  }
+  ```
+</ParamField>
+
+<ParamField path="onComplete" type="(score: number, passed: boolean) => void" required>
+  Callback function invoked when the quiz is completed.
+  
+  **Parameters:**
+  - `score` - Final score as percentage (0-100)
+  - `passed` - Whether score meets or exceeds passingScore
+</ParamField>
+
+## Quiz Data Structure
+
+### Quiz Interface
+
+```tsx
+interface Quiz {
+  title: string;           // Quiz title
+  description: string;     // Quiz description/instructions
+  questions: QuizQuestion[]; // Array of questions
+  passingScore: number;    // Minimum percentage to pass (e.g., 70)
+}
+```
+
+### QuizQuestion Interface
+
+```tsx
+interface QuizQuestion {
+  id: number | string;     // Unique question identifier
+  question: string;        // Question text
+  options: string[];       // Answer choices (4 options)
+  correctAnswer: number;   // Index of correct option (0-3)
+  explanation: string;     // Explanation shown after answering
+  category?: string;       // Optional question category
+}
+```
+
+## Usage Example
+
+### Basic Usage
+
+```tsx
+import { QuizSection } from '@/components/lesson/QuizSection';
+
+function LessonPage() {
+  const quiz = {
+    title: "Understanding FHE",
+    description: "Test your knowledge of Fully Homomorphic Encryption basics.",
+    passingScore: 70,
+    questions: [
+      {
+        id: 1,
+        question: "What does FHE stand for?",
+        options: [
+          "Fast Hash Encryption",
+          "Fully Homomorphic Encryption",
+          "Federated Hash Exchange",
+          "Forward Hash Encoding"
+        ],
+        correctAnswer: 1,
+        explanation: "FHE stands for Fully Homomorphic Encryption, which allows computation on encrypted data."
+      },
+      // ... more questions
+    ]
+  };
+
+  const handleQuizComplete = (score: number, passed: boolean) => {
+    console.log(`Quiz completed! Score: ${score}%, Passed: ${passed}`);
+    if (passed) {
+      // Mark lesson as complete, unlock next lesson, etc.
+    }
+  };
+
+  return (
+    <div>
+      <h1>Lesson Content</h1>
+      {/* ... lesson content ... */}
+      
+      <QuizSection quiz={quiz} onComplete={handleQuizComplete} />
+    </div>
+  );
+}
+```
+
+### With Progress Tracking
+
+```tsx
+import { QuizSection } from '@/components/lesson/QuizSection';
+import { useBootcampStore } from '@/state/bootcampStore';
+
+function LessonWithQuiz({ weekId, lessonId, quiz }) {
+  const { setQuizScore, completeLesson } = useBootcampStore();
+
+  const handleQuizComplete = (score: number, passed: boolean) => {
+    // Save quiz score
+    setQuizScore(weekId, lessonId, score, passed);
+    
+    // Mark lesson as complete if passed
+    if (passed) {
+      completeLesson(weekId, lessonId);
+    }
+  };
+
+  return <QuizSection quiz={quiz} onComplete={handleQuizComplete} />;
+}
+```
+
+## Component States
+
+### 1. Question State (Active Quiz)
+
+**When:** User is answering questions
+
+**Display:**
+- Quiz title and progress badge (e.g., "2/5")
+- Current question text
+- Answer options (A, B, C, D)
+- Explanation (after answering)
+- Next/Finish button (after answering)
+
+### 2. Completion State (Passed)
+
+**When:** Quiz finished with passing score
+
+**Display:**
+- Green checkmark icon
+- "Quiz Passed!" message
+- Score display (e.g., "85% (4/5 correct)")
+- Passing score requirement
+- "Retake Quiz" button
+
+### 3. Completion State (Failed)
+
+**When:** Quiz finished with failing score
+
+**Display:**
+- Red X icon
+- "Quiz Not Passed" message
+- Score display
+- Passing score requirement
+- "Try Again" button
+
+## Internal State Management
+
+```tsx
+const [currentQuestion, setCurrentQuestion] = useState(0);
+const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+const [showExplanation, setShowExplanation] = useState(false);
+const [correctCount, setCorrectCount] = useState(0);
+const [finished, setFinished] = useState(false);
+const [answers, setAnswers] = useState<(number | null)[]>(...);
+```
+
+### State Variables
+
+- `currentQuestion` - Index of current question (0-based)
+- `selectedAnswer` - Index of selected answer option
+- `showExplanation` - Whether to show explanation
+- `correctCount` - Number of correct answers
+- `finished` - Whether quiz is complete
+- `answers` - Array tracking all user answers
+
+## User Interaction Flow
+
+### 1. Answer Selection
+
+```tsx
+const handleSelectAnswer = (answerIndex: number) => {
+  if (showExplanation) return; // Prevent changing answer
+  
+  setSelectedAnswer(answerIndex);
+  setShowExplanation(true);
+  
+  // Track answer
+  const newAnswers = [...answers];
+  newAnswers[currentQuestion] = answerIndex;
+  setAnswers(newAnswers);
+  
+  // Update score if correct
+  if (answerIndex === question.correctAnswer) {
+    setCorrectCount((c) => c + 1);
+  }
+};
+```
+
+### 2. Navigation to Next Question
+
+```tsx
+const handleNext = () => {
+  if (currentQuestion < totalQuestions - 1) {
+    // Move to next question
+    setCurrentQuestion((c) => c + 1);
+    setSelectedAnswer(null);
+    setShowExplanation(false);
+  } else {
+    // Finish quiz
+    const finalScore = Math.round((correctCount / totalQuestions) * 100);
+    setFinished(true);
+    onComplete(finalScore, finalScore >= quiz.passingScore);
+  }
+};
+```
+
+### 3. Quiz Reset
+
+```tsx
+const handleReset = () => {
+  setCurrentQuestion(0);
+  setSelectedAnswer(null);
+  setShowExplanation(false);
+  setCorrectCount(0);
+  setFinished(false);
+  setAnswers(new Array(totalQuestions).fill(null));
+};
+```
+
+## Visual Feedback
+
+### Answer Option Styling
+
+**Before Answering:**
+- Default: Outlined buttons
+- Selected: Primary color border and background
+
+**After Answering:**
+- Correct answer: Green border and background
+- Incorrect selection: Red border and background
+- Other options: Dimmed opacity
+
+```tsx
+if (showExplanation) {
+  if (i === question.correctAnswer) {
+    className += ' border-green-500 bg-green-500/10 text-green-700';
+  } else if (i === selectedAnswer && !isCorrect) {
+    className += ' border-red-500 bg-red-500/10 text-red-700';
+  } else {
+    className += ' opacity-50';
+  }
+}
+```
+
+### Explanation Panel
+
+**Correct Answer:**
+- Green background with green border
+- Green checkmark icon
+- "Correct!" heading
+
+**Incorrect Answer:**
+- Red background with red border
+- Red X icon
+- "Incorrect" heading
+
+## Score Calculation
+
+```tsx
+const score = Math.round((correctCount / totalQuestions) * 100);
+const passed = score >= quiz.passingScore;
+```
+
+**Example:**
+- Total questions: 5
+- Correct answers: 4
+- Score: (4/5) × 100 = 80%
+- Passing score: 70%
+- Result: Passed
+
+## Animations
+
+Uses Framer Motion for:
+- Explanation panel fade-in
+- Smooth state transitions
+
+```tsx
+<AnimatePresence>
+  {showExplanation && (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+    >
+      {/* Explanation content */}
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+## Accessibility
+
+- Answer options labeled A, B, C, D for easy reference
+- Disabled state prevents answer changes after selection
+- Clear visual feedback for correct/incorrect answers
+- Keyboard-accessible button controls
+
+## Best Practices
+
+### Quiz Design
+
+- Include 3-5 questions per quiz
+- Set passing score to 70-80%
+- Provide clear, educational explanations
+- Use 4 answer options per question
+
+### Integration
+
+```tsx
+// ✅ Good: Key prop for re-initialization
+<QuizSection 
+  key={`${weekId}-${lessonId}`} 
+  quiz={quiz} 
+  onComplete={handleComplete} 
+/>
+
+// ❌ Bad: Missing key may cause state persistence
+<QuizSection quiz={quiz} onComplete={handleComplete} />
+```
+
+## Related Components
+
+- [LessonView](/api/components/lesson-view) - Main lesson page that integrates QuizSection
+- `Card` - UI wrapper component
+- `Badge` - Progress and status indicators
+- `Button` - Interactive controls
+
+## See Also
+
+- [Quiz Types](/api/types/quiz) - Complete quiz type definitions
+- [Bootcamp Store](/api/state/bootcamp-store) - Quiz score persistence

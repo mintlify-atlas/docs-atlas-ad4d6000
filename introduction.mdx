@@ -1,0 +1,215 @@
+---
+title: 'Welcome to FHEVM Bootcamp'
+description: 'A comprehensive 4-week program to master confidential computing and build privacy-preserving decentralized applications'
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="FHEVM Bootcamp Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="FHEVM Bootcamp Hero Dark"
+/>
+
+## Transform Into a Confidential Computing Expert
+
+The **FHEVM Developer Bootcamp** is a production-ready, 4-week structured curriculum designed to onboard developers into Fully Homomorphic Encryption (FHE) and the Zama Protocol at scale. Build real-world confidential applications that preserve privacy while maintaining functionality.
+
+<CardGroup cols={2}>
+  <Card
+    title="4 Weeks of Learning"
+    icon="calendar"
+    href="/quickstart"
+  >
+    Progressive curriculum from fundamentals to production deployment with 12 comprehensive lessons
+  </Card>
+  <Card
+    title="Interactive Platform"
+    icon="rocket"
+    href="/installation"
+  >
+    Hands-on coding exercises, live demos, quizzes, and real contract interactions on Sepolia testnet
+  </Card>
+  <Card
+    title="Homework & Projects"
+    icon="code"
+    href="/curriculum/overview"
+  >
+    Weekly assignments with grading rubrics, starter code, and full solution implementations
+  </Card>
+  <Card
+    title="Progress Tracking"
+    icon="chart-line"
+    href="/features/progress-tracking"
+  >
+    Visual analytics dashboard with per-lesson and per-week progress monitoring
+  </Card>
+</CardGroup>
+
+## What You'll Build
+
+By completing this bootcamp, you'll master the skills to build production-grade confidential applications:
+
+<AccordionGroup>
+  <Accordion title="Week 1: Foundations of Confidential Computing" icon="graduation-cap">
+    - Understand FHE fundamentals and the Zama Protocol architecture
+    - Set up your complete development environment
+    - Learn encryption operations and confidential data types
+    - **Project**: Complete environment setup and FHE concept verification
+  </Accordion>
+
+  <Accordion title="Week 2: FHEVM Smart Contract Development" icon="file-contract">
+    - Write your first confidential smart contract
+    - Master contract patterns and architecture
+    - Test and deploy FHEVM contracts to testnet
+    - **Project**: Build a Confidential Counter with encrypted state
+  </Accordion>
+
+  <Accordion title="Week 3: Full-Stack Confidential dApps" icon="layer-group">
+    - Integrate frontend with fhevmjs library
+    - Build a complete Private Voting dApp
+    - Implement advanced FHEVM patterns and encryption flows
+    - **Project**: Deploy a functional Private Voting application
+  </Accordion>
+
+  <Accordion title="Week 4: Production & Capstone" icon="trophy">
+    - Explore advanced FHEVM applications (DeFi, gaming, governance)
+    - Optimize gas usage and contract performance
+    - Implement security best practices and production deployment
+    - **Capstone**: Build and deploy a production confidential application
+  </Accordion>
+</AccordionGroup>
+
+## Key Platform Features
+
+### For Students
+
+- **Progressive Learning Path** - Structured lessons with clear objectives and hands-on exercises
+- **Real Contract Interactions** - Deploy and interact with live smart contracts on Sepolia testnet
+- **Interactive Quizzes** - End-of-lesson knowledge checks with instant feedback and explanations
+- **Code Templates** - Downloadable starter and solution code for every assignment
+- **Multiple Learning Modes** - Toggle between cohort-locked and self-paced progression
+- **Persistent Progress** - Your learning progress is saved across sessions
+
+### For Instructors
+
+- **Instructor Mode** - Toggle to reveal detailed teaching notes and facilitation tips
+- **Pacing Guidance** - Recommended timelines and schedule templates for cohort delivery
+- **Complete Rubrics** - Clear grading criteria with scoring guidelines for every assignment
+- **Cohort Management** - Switch between structured cohort and open self-paced modes
+- **Teaching Resources** - Instructor guide with best practices for running bootcamps
+
+## Who This Bootcamp Is For
+
+<CardGroup cols={3}>
+  <Card title="Web3 Developers" icon="ethereum">
+    Smart contract developers looking to add privacy-preserving capabilities to their applications
+  </Card>
+  <Card title="Blockchain Engineers" icon="server">
+    Engineers with Ethereum and Solidity knowledge ready to explore confidential computing
+  </Card>
+  <Card title="Technical Educators" icon="chalkboard-user">
+    Community leaders and educators planning to run FHEVM workshops and training programs
+  </Card>
+</CardGroup>
+
+## Prerequisites
+
+Before starting this bootcamp, you should have:
+
+- Basic understanding of **Ethereum** and smart contracts
+- Familiarity with **Solidity** syntax and development
+- Experience with development tools such as **Hardhat** or **Foundry**
+- Basic knowledge of **JavaScript/TypeScript** and React
+
+<Note>
+  **No prior FHE or cryptography knowledge required!** We'll teach you everything you need to know about Fully Homomorphic Encryption from the ground up.
+</Note>
+
+## Technology Stack
+
+The bootcamp platform is built with modern web technologies:
+
+<CodeGroup>
+```typescript Frontend
+// React 18 + TypeScript + Vite
+import React from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// State management with Zustand
+import { useBootcampStore } from '@/state/bootcampStore';
+```
+
+```typescript Blockchain Integration
+// Wagmi + RainbowKit for wallet connection
+import { WagmiConfig } from 'wagmi';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+
+// FHE integration
+import { createFheClient } from '@/lib/fhe/fheClient';
+import { FheClientConfig } from '@/lib/fhe/types';
+```
+
+```solidity Smart Contracts
+// SPDX-License-Identifier: BSD-3-Clause-Clear
+pragma solidity ^0.8.24;
+
+import { FHE, euint32 } from "@fhevm/solidity/lib/FHE.sol";
+import { ZamaEthereumConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
+```
+</CodeGroup>
+
+**Frontend Technologies:**
+- React 18, TypeScript, Vite
+- shadcn/ui, Radix UI, Tailwind CSS
+- Zustand for state management
+- Framer Motion for animations
+
+**Blockchain & FHE:**
+- Wagmi, RainbowKit, ethers.js
+- fhevmjs for client-side encryption
+- @zama-fhe/relayer-sdk for decryption
+- @fhevm/solidity for smart contracts
+
+## Curriculum Highlights
+
+The bootcamp includes **12 comprehensive lessons** spanning **45 hours** of content:
+
+- **Week 1**: Foundations (~8 hours) - FHE theory, environment setup, encryption basics
+- **Week 2**: Smart Contracts (~10 hours) - Writing, testing, and deploying FHEVM contracts
+- **Week 3**: Full-Stack dApps (~12 hours) - Frontend integration, voting dApp, advanced patterns
+- **Week 4**: Production (~15 hours) - Advanced applications, optimization, security, capstone project
+
+Each lesson includes:
+- Clear learning objectives
+- Interactive content sections
+- Code examples with syntax highlighting
+- Instructor teaching notes
+- Knowledge check quizzes
+
+## Ready to Start?
+
+<CardGroup cols={2}>
+  <Card
+    title="Quick Start"
+    icon="play"
+    href="/quickstart"
+  >
+    Get the bootcamp running locally in under 5 minutes
+  </Card>
+  <Card
+    title="Installation Guide"
+    icon="download"
+    href="/installation"
+  >
+    Detailed setup with prerequisites, environment config, and troubleshooting
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Running a cohort?** Check out the [Instructor Setup Guide](/guides/instructor-setup) for tips on facilitating the bootcamp, pacing recommendations, and cohort management strategies.
+</Tip>

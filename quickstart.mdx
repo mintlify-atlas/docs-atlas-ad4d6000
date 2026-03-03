@@ -1,80 +1,349 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: 'Quick Start'
+description: 'Get the FHEVM Bootcamp running locally in under 5 minutes'
 ---
 
-## Get started in three steps
+## Get Started in 3 Steps
 
-Get your documentation site running locally and make your first customization.
+This quick start guide will have you running the FHEVM Bootcamp platform on your local machine in minutes.
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Clone the Repository">
+    First, clone the bootcamp repository to your local machine:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    git clone https://github.com/your-org/fhevm-bootcamp.git
+    cd fhevm-bootcamp
+    ```
 
-### Step 2: Deploy your changes
+    <Note>
+      Replace `your-org/fhevm-bootcamp` with the actual repository URL for your bootcamp instance.
+    </Note>
+  </Step>
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+  <Step title="Install Dependencies">
+    Install all required Node.js dependencies using npm:
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    ```bash
+    npm install
+    ```
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+    <Accordion title="What gets installed?">
+      The bootcamp uses these key dependencies:
+      
+      **Frontend Framework:**
+      - `react@18.3.1` - UI library
+      - `vite@5.4.19` - Build tool and dev server
+      - `typescript@5.8.3` - Type safety
+      
+      **UI Components:**
+      - `@radix-ui/*` - Accessible component primitives
+      - `tailwindcss@3.4.17` - Utility-first CSS
+      - `lucide-react@0.462.0` - Icon library
+      
+      **Blockchain Integration:**
+      - `wagmi@2.16.9` - React hooks for Ethereum
+      - `@rainbow-me/rainbowkit@2.2.8` - Wallet connection
+      - `ethers@6.15.0` - Ethereum library
+      - `viem@2.37.6` - TypeScript Ethereum utilities
+      
+      **FHE Libraries:**
+      - `fhevmjs@0.6.2` - Client-side FHE operations
+      - `@zama-fhe/relayer-sdk@0.2.0` - Decryption relayer
+      
+      **State & Routing:**
+      - `zustand@5.0.8` - State management
+      - `react-router-dom@6.30.1` - Routing
+      - `@tanstack/react-query@5.83.0` - Data fetching
+    </Accordion>
 
-### Step 3: Go live
+    <Info>
+      Installation typically takes 1-3 minutes depending on your internet connection. The total package size is approximately 350MB.
+    </Info>
+  </Step>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+  <Step title="Start the Development Server">
+    Launch the Vite development server:
 
-## Next steps
+    ```bash
+    npm run dev
+    ```
 
-Now that you have your docs running, explore these key features:
+    You should see output like:
+
+    ```bash
+    VITE v5.4.19  ready in 342 ms
+
+    ➜  Local:   http://localhost:8080/
+    ➜  Network: http://192.168.1.100:8080/
+    ➜  press h + enter to show help
+    ```
+
+    <Success>
+      The bootcamp is now running! Open [http://localhost:8080](http://localhost:8080) in your browser.
+    </Success>
+  </Step>
+</Steps>
+
+## What's Next?
+
+After launching the bootcamp, you'll see the **Dashboard** page with:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Week Overview" icon="calendar-days">
+    Browse all 4 weeks of curriculum with objectives and lesson lists
+  </Card>
+  <Card title="Progress Tracking" icon="chart-line">
+    Monitor your completion status across lessons and weeks
+  </Card>
+  <Card title="Instructor Mode" icon="chalkboard-user">
+    Toggle instructor notes and teaching guidance (top-right corner)
+  </Card>
+  <Card title="Resources Library" icon="book">
+    Access contract examples, code templates, and reference materials
+  </Card>
 </CardGroup>
 
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>
+## Exploring the Platform
+
+### Navigation
+
+The bootcamp uses a sidebar navigation structure:
+
+- **Dashboard** - Landing page with curriculum overview
+- **Week 1-4** - Expandable accordion with lessons and homework
+- **Progress** - Analytics dashboard showing your completion
+- **Contracts** - Library of FHEVM contract examples
+- **Resources** - Additional learning materials
+- **Instructor** - Teaching guide (if in instructor mode)
+
+<Tip>
+  Click the menu icon in the top-left to collapse/expand the sidebar for more screen space.
+</Tip>
+
+### Starting Your First Lesson
+
+<Steps>
+  <Step title="Navigate to Week 1">
+    In the sidebar, click on **"Week 1: Foundations of Confidential Computing"** to expand it.
+  </Step>
+
+  <Step title="Open Lesson 1.1">
+    Click on **"Lesson 1.1: Welcome to FHEVM"** to open the first lesson.
+  </Step>
+
+  <Step title="Complete the Lesson">
+    Read through the content sections, complete the quiz at the end, and mark the lesson as complete.
+    
+    Your progress will be automatically saved to browser localStorage.
+  </Step>
+</Steps>
+
+## Available Scripts
+
+The bootcamp provides these npm scripts for different tasks:
+
+<CodeGroup>
+```bash Development
+# Start the development server (port 8080)
+npm run dev
+```
+
+```bash Production Build
+# Create optimized production build
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+```bash Code Quality
+# Run ESLint for code quality checks
+npm run lint
+```
+
+```bash Slide Generation
+# Build Marp presentation slides from markdown
+npm run build:slides
+```
+</CodeGroup>
+
+### Script Details
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `dev` | `vite` | Starts development server on port 8080 with hot module replacement |
+| `build` | `vite build` | Creates production build in `dist/` folder |
+| `build:dev` | `vite build --mode development` | Development mode build with source maps |
+| `build:slides` | `npx @marp-team/marp-cli ...` | Generates HTML slides from markdown presentations |
+| `lint` | `eslint .` | Runs ESLint to check code quality |
+| `preview` | `vite preview` | Previews production build locally |
+
+## Configuration Overview
+
+The bootcamp runs out-of-the-box with sensible defaults, but you can customize it:
+
+### Environment Variables (Optional)
+
+Create a `.env` file in the root directory to customize settings:
+
+```bash .env
+# Network Configuration
+VITE_RPC_URL=https://devnet.zama.ai
+VITE_CHAIN_ID=8009
+VITE_NETWORK_NAME=Zama Devnet
+
+# Use mock FHE client for tutorials (true/false)
+VITE_USE_MOCKS=true
+
+# App Metadata
+VITE_APP_NAME=FHEVM Developer Bootcamp
+VITE_APP_DESCRIPTION=Learn confidential computing on Zama Protocol
+```
+
+<Warning>
+  The `.env` file is optional for local development. The bootcamp includes a `.env.example` template you can copy and modify.
+</Warning>
+
+### Vite Configuration
+
+The platform is configured via `vite.config.ts`:
+
+```typescript vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+
+export default defineConfig({
+  server: {
+    host: "::",
+    port: 8080,  // Development server port
+  },
+  plugins: [
+    react(),
+    nodePolyfills({
+      // Polyfills for fhevmjs compatibility
+      include: ["buffer", "process", "util", "events", "stream"],
+      globals: { Buffer: true, global: true, process: true },
+    }),
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),  // @ imports
+    },
+  },
+});
+```
+
+## Verifying Your Installation
+
+To ensure everything is working correctly:
+
+<Steps>
+  <Step title="Check the Dashboard Loads">
+    Navigate to [http://localhost:8080](http://localhost:8080) and verify the dashboard displays all 4 weeks.
+  </Step>
+
+  <Step title="Open a Lesson">
+    Click into any lesson and confirm content renders properly with syntax highlighting.
+  </Step>
+
+  <Step title="Test Progress Tracking">
+    Complete a lesson and check that your progress persists after refreshing the page.
+  </Step>
+
+  <Step title="Check Console">
+    Open browser DevTools (F12) and verify there are no critical errors in the console.
+  </Step>
+</Steps>
+
+<Success>
+  If all checks pass, your bootcamp installation is working correctly!
+</Success>
+
+## Common Quick Start Issues
+
+<AccordionGroup>
+  <Accordion title="Port 8080 already in use">
+    If port 8080 is occupied, you can change it in `vite.config.ts`:
+
+    ```typescript
+    server: {
+      host: "::",
+      port: 3000,  // Change to any available port
+    },
+    ```
+
+    Or specify a different port when running:
+
+    ```bash
+    npm run dev -- --port 3000
+    ```
+  </Accordion>
+
+  <Accordion title="Node.js version issues">
+    This bootcamp requires Node.js 18.x or higher. Check your version:
+
+    ```bash
+    node --version
+    ```
+
+    If you're running an older version, upgrade using [nvm](https://github.com/nvm-sh/nvm) or download from [nodejs.org](https://nodejs.org/).
+  </Accordion>
+
+  <Accordion title="Installation fails with dependency errors">
+    Try clearing npm cache and reinstalling:
+
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm cache clean --force
+    npm install
+    ```
+  </Accordion>
+
+  <Accordion title="Blank page or errors in browser">
+    1. Check the browser console (F12) for specific errors
+    2. Ensure you're using a modern browser (Chrome, Firefox, Edge, Safari 14+)
+    3. Try clearing browser cache and hard reload (Ctrl+Shift+R or Cmd+Shift+R)
+    4. Verify the dev server is still running in your terminal
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+Now that your bootcamp is running:
+
+<CardGroup cols={2}>
+  <Card
+    title="Detailed Installation"
+    icon="screwdriver-wrench"
+    href="/getting-started/installation"
+  >
+    Learn about prerequisites, environment setup, and advanced configuration
+  </Card>
+  <Card
+    title="Curriculum Overview"
+    icon="map"
+    href="/curriculum/overview"
+  >
+    Explore the full 4-week curriculum structure and learning objectives
+  </Card>
+  <Card
+    title="Start Week 1"
+    icon="play"
+    href="/curriculum/week-1/lesson-1-1"
+  >
+    Begin your journey with Lesson 1.1: Welcome to FHEVM
+  </Card>
+  <Card
+    title="Instructor Guide"
+    icon="chalkboard-user"
+    href="/instructor/guide"
+  >
+    Learn how to run this bootcamp for your community (for educators)
+  </Card>
+</CardGroup>
+
+<Tip>
+  **Pro tip**: Enable dark mode using the theme toggle in the top-right corner for a more comfortable learning experience.
+</Tip>

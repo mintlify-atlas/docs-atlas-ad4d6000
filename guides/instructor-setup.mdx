@@ -1,0 +1,835 @@
+---
+title: 'Instructor Setup Guide'
+description: 'Set up and run a cohort using the FHEVM Bootcamp platform'
+icon: 'chalkboard-user'
+---
+
+This guide helps instructors prepare for and facilitate a successful FHEVM Developer Bootcamp cohort.
+
+## Overview
+
+The bootcamp platform supports two delivery modes:
+
+<CardGroup cols={2}>
+  <Card title="Cohort Mode" icon="users">
+    Structured 4-week program with sequential progression. Students must complete each lesson before advancing.
+  </Card>
+
+  <Card title="Self-Paced Mode" icon="person-running">
+    All content unlocked immediately. Students progress at their own speed.
+  </Card>
+</CardGroup>
+
+This guide focuses on **Cohort Mode** delivery with instructor facilitation.
+
+## Pre-Bootcamp Preparation
+
+### 1. Platform Setup
+
+<Steps>
+  <Step title="Deploy the Platform">
+    Follow the [Deployment Guide](/guides/deployment) to set up your bootcamp instance.
+
+    Recommended hosting: Netlify or Vercel for easy updates.
+  </Step>
+
+  <Step title="Configure Environment">
+    Set up `.env` with proper network configuration:
+
+    ```bash .env
+    VITE_RPC_URL=https://devnet.zama.ai
+    VITE_CHAIN_ID=8009
+    VITE_NETWORK_NAME=Zama Devnet
+    VITE_USE_MOCKS=false  # Set to false for live contract demos
+    ```
+  </Step>
+
+  <Step title="Enable Instructor Mode">
+    In `src/state/bootcampStore.ts`, set default instructor mode:
+
+    ```typescript
+    instructorMode: true,  // Shows teaching notes by default
+    ```
+
+    Or toggle it via the AppBar during sessions.
+  </Step>
+
+  <Step title="Set Learning Mode">
+    Configure cohort mode in `src/state/bootcampStore.ts`:
+
+    ```typescript
+    learningMode: 'cohort',  // Sequential progression
+    ```
+
+    This locks content until prerequisites are completed.
+  </Step>
+</Steps>
+
+### 2. Customize Content
+
+<Steps>
+  <Step title="Review Curriculum">
+    Read through all 12 lessons in `src/data/curriculum.ts` and familiarize yourself with:
+    - Learning objectives for each lesson
+    - Instructor notes (teaching tips and pacing)
+    - Interactive components and demos
+    - Quiz questions and homework requirements
+  </Step>
+
+  <Step title="Adapt to Your Audience">
+    Customize content based on your cohort's background:
+
+    - **For experienced developers**: Skip basic setup, focus on FHE concepts
+    - **For crypto newcomers**: Add blockchain fundamentals content
+    - **For security researchers**: Deep dive into cryptography sections
+
+    See [Customization Guide](/guides/customization) for editing content.
+  </Step>
+
+  <Step title="Prepare Additional Resources">
+    Gather supplementary materials:
+    - Slide decks (Marp slides in `public/slides/`)
+    - Code repositories for live coding
+    - Q&A document for common questions
+    - Office hours scheduling tool (Calendly, etc.)
+  </Step>
+
+  <Step title="Test All Interactive Components">
+    Verify these work correctly:
+    - Contract explorer (Week 2, Lesson 2.1)
+    - Voting simulator (Week 3, Lesson 3.2)
+    - FHE basics tabs (Week 1, Lesson 1.3)
+    - Quiz functionality (all lessons)
+  </Step>
+</Steps>
+
+### 3. Student Onboarding Materials
+
+Prepare these documents for students:
+
+<AccordionGroup>
+  <Accordion title="Welcome Email Template">
+    ```markdown
+    Subject: Welcome to FHEVM Developer Bootcamp!
+
+    Hi [Student Name],
+
+    Welcome to the FHEVM Developer Bootcamp! Over the next 4 weeks, you'll learn to build confidential smart contracts using Fully Homomorphic Encryption.
+
+    **Bootcamp Platform**: [Your deployed URL]
+    **Start Date**: [Date]
+    **Schedule**: [Days/times]
+    **Communication**: [Discord/Slack link]
+
+    **Before Week 1**:
+    1. Complete Lesson 1.2 (Environment Setup)
+    2. Install MetaMask and configure Sepolia testnet
+    3. Get test ETH from faucet: https://sepoliafaucet.com
+    4. Join our [Discord/Slack] for questions
+
+    **Prerequisites Check**:
+    - Basic Solidity knowledge
+    - Familiarity with Hardhat or Foundry
+    - Node.js 18+ installed
+
+    Questions? Reply to this email or message me on [platform].
+
+    Looking forward to building with you!
+
+    [Your Name]
+    [Your Title]
+    ```
+  </Accordion>
+
+  <Accordion title="Prerequisites Checklist">
+    Share this checklist with students before Week 1:
+
+    <Checklist>
+      - [ ] Node.js 18+ installed (`node --version`)
+      - [ ] npm or Yarn installed
+      - [ ] Git installed
+      - [ ] MetaMask browser extension
+      - [ ] VS Code or preferred editor
+      - [ ] Basic understanding of Ethereum
+      - [ ] Completed a Solidity tutorial (Cryptozombies, etc.)
+      - [ ] Hardhat or Foundry experience
+      - [ ] Test ETH on Sepolia testnet
+    </Checklist>
+  </Accordion>
+
+  <Accordion title="Communication Channels Setup">
+    Set up these channels:
+
+    **Discord Server** (Recommended):
+    - `#announcements` - Instructor-only posting
+    - `#general` - General discussion
+    - `#week-1` through `#week-4` - Weekly channels
+    - `#homework-help` - Assignment questions
+    - `#office-hours` - Voice channel for live help
+    - `#resources` - Links and references
+
+    **Slack Workspace** (Alternative):
+    - Similar channel structure
+    - Use threads for organized discussions
+
+    **GitHub Organization**:
+    - Create private repos for homework submissions
+    - Use Issues for Q&A
+    - Use Discussions for async collaboration
+  </Accordion>
+</AccordionGroup>
+
+## 4-Week Cohort Schedule
+
+### Recommended Pacing
+
+<Tabs>
+  <Tab title="Part-Time (Evening)">
+    **Schedule**: 2 evenings/week + weekend
+
+    <Accordion title="Week 1: Foundations">
+      **Session 1** (Tuesday, 2 hours):
+      - Lesson 1.1: Welcome to FHEVM (30 min lecture, 15 min Q&A)
+      - Lesson 1.2: Environment Setup (45 min guided setup, 30 min troubleshooting)
+
+      **Session 2** (Thursday, 2 hours):
+      - Lesson 1.3: FHE Deep Dive (60 min lecture, 30 min interactive demos, 30 min Q&A)
+
+      **Weekend**:
+      - Homework 1 (8 hours self-paced)
+      - Office hours (Saturday, 2 hours)
+    </Accordion>
+
+    <Accordion title="Week 2: Smart Contracts">
+      **Session 3** (Tuesday, 2 hours):
+      - Lesson 2.1: Your First FHEVM Contract (45 min lecture, 45 min live coding, 30 min Q&A)
+
+      **Session 4** (Thursday, 2 hours):
+      - Lesson 2.2: Contract Patterns (60 min lecture, 60 min code review)
+
+      **Session 5** (Saturday, 2 hours):
+      - Lesson 2.3: Testing & Deployment (45 min lecture, 75 min hands-on)
+
+      **Weekend**:
+      - Homework 2 (10 hours self-paced)
+      - Office hours (Sunday, 2 hours)
+    </Accordion>
+
+    <Accordion title="Week 3: Full-Stack dApps">
+      **Session 6** (Tuesday, 2.5 hours):
+      - Lesson 3.1: Frontend Integration (75 min lecture, 75 min coding)
+
+      **Session 7** (Thursday, 2.5 hours):
+      - Lesson 3.2: Private Voting dApp (60 min walkthrough, 90 min build)
+
+      **Session 8** (Saturday, 2 hours):
+      - Lesson 3.3: Advanced Patterns (60 min lecture, 60 min examples)
+
+      **Weekend**:
+      - Homework 3 (12 hours self-paced)
+      - Office hours (Sunday, 3 hours)
+    </Accordion>
+
+    <Accordion title="Week 4: Production & Capstone">
+      **Session 9** (Tuesday, 2 hours):
+      - Lesson 4.1: Advanced Applications (90 min case studies, 30 min Q&A)
+
+      **Session 10** (Thursday, 2 hours):
+      - Lesson 4.2: Gas Optimization (90 min deep dive, 30 min practice)
+
+      **Session 11** (Saturday, 2 hours):
+      - Lesson 4.3: Production & Security (90 min lecture, 30 min checklist)
+
+      **Capstone Week**:
+      - Monday-Thursday: Building (15 hours)
+      - Friday: Presentations (3 hours)
+      - Office hours (3 sessions x 2 hours)
+    </Accordion>
+  </Tab>
+
+  <Tab title="Full-Time (Bootcamp)">
+    **Schedule**: Monday-Friday, 9am-5pm
+
+    <Accordion title="Week 1: Foundations">
+      **Monday**:
+      - 9-10:30am: Lesson 1.1 (lecture + discussion)
+      - 10:30-12pm: Lesson 1.2 (guided setup)
+      - 1-3pm: Lesson 1.3 (FHE deep dive)
+      - 3-5pm: Lab time + Q&A
+
+      **Tuesday**:
+      - 9-11am: FHE review and exercises
+      - 11-12pm: Homework 1 introduction
+      - 1-5pm: Homework 1 work time
+
+      **Wednesday**:
+      - 9-12pm: Homework 1 continued
+      - 1-3pm: Code review sessions
+      - 3-5pm: Homework 1 completion
+
+      **Thursday**:
+      - 9-11am: Homework 1 solutions walkthrough
+      - 11-12pm: Week 1 recap
+      - 1-5pm: Advanced exercises
+
+      **Friday**:
+      - 9-12pm: Guest speaker / Zama team
+      - 1-3pm: Week 1 quiz and assessment
+      - 3-5pm: Week 2 preview
+    </Accordion>
+
+    <Accordion title="Week 2-4: Similar Structure">
+      Follow the same pattern:
+      - Mon-Tue: Lessons
+      - Wed: Homework work time
+      - Thu: Review and advanced topics
+      - Fri: Guest speakers and assessments
+    </Accordion>
+  </Tab>
+
+  <Tab title="Weekend Workshop">
+    **Schedule**: 2 full weekends (Sat-Sun, 9am-5pm)
+
+    <Accordion title="Weekend 1: Weeks 1-2">
+      **Saturday**:
+      - 9-10:30am: Lessons 1.1-1.2
+      - 10:45-12:30pm: Lesson 1.3
+      - 1:30-3pm: Lesson 2.1
+      - 3:15-5pm: Lesson 2.2
+
+      **Sunday**:
+      - 9-11am: Lesson 2.3
+      - 11:15am-1pm: Homework 1 & 2 intro
+      - 2-5pm: Work time + office hours
+
+      **Week between**: Complete Homework 1 & 2 async
+    </Accordion>
+
+    <Accordion title="Weekend 2: Weeks 3-4">
+      **Saturday**:
+      - 9-11am: Lessons 3.1-3.2
+      - 11:15am-1pm: Lesson 3.3
+      - 2-3:30pm: Lessons 4.1-4.2
+      - 3:45-5pm: Lesson 4.3
+
+      **Sunday**:
+      - 9am-12pm: Capstone project intro + building
+      - 1-4pm: Capstone continued
+      - 4-5pm: Lightning presentations
+
+      **Week after**: Complete Homework 3 & Capstone async
+    </Accordion>
+  </Tab>
+</Tabs>
+
+## Teaching Tips by Lesson
+
+### Week 1: Foundations
+
+<AccordionGroup>
+  <Accordion title="Lesson 1.1: Welcome to FHEVM">
+    **Key Points**:
+    - Start with the "why" - show public blockchain data on Etherscan
+    - Use the HTTPS analogy: "HTTPS encrypts in transit, FHE encrypts in compute"
+    - The coprocessor model is crucial - spend time here
+
+    **Instructor Notes** (from curriculum):
+    - Ask: "Would you use Ethereum to pay your salary?" to motivate privacy
+    - Use ballot box analogy: "counts votes without peeking inside"
+    - Gauge audience crypto familiarity early
+
+    **Common Questions**:
+    - Q: "How is this different from ZK proofs?"
+      A: ZK proves correctness, FHE preserves privacy during computation. Complementary technologies.
+    - Q: "What's the performance overhead?"
+      A: FHE is slower, but Zama's optimizations make it practical for many use cases.
+  </Accordion>
+
+  <Accordion title="Lesson 1.2: Environment Setup">
+    **Before Session**:
+    - Test all setup steps on multiple OS (Mac, Windows, Linux)
+    - Prepare troubleshooting guide for common issues
+    - Have backup RPC URLs ready
+
+    **During Session**:
+    - Do live setup alongside students
+    - Use screen sharing for troubleshooting
+    - Have TAs help with individual issues
+
+    **Common Issues**:
+    - MetaMask not detecting network: Check chain ID
+    - Faucet not working: Use alternative faucets
+    - Node version too old: Use nvm to install 18+
+  </Accordion>
+
+  <Accordion title="Lesson 1.3: FHE Deep Dive">
+    **Key Points**:
+    - Focus on TFHE operations (add, sub, mul, eq, etc.)
+    - Emphasize ciphertext vs plaintext operations
+    - Show real examples from Zama documentation
+
+    **Interactive Demo**:
+    - Use the FHE Basics Tabs component (in lesson)
+    - Live code a simple encrypted addition
+    - Show gas costs comparison
+
+    **Pacing**:
+    - 20 min: FHE theory
+    - 20 min: TFHE library walkthrough
+    - 20 min: Live demo
+    - 15 min: Q&A
+  </Accordion>
+</AccordionGroup>
+
+### Week 2: Smart Contracts
+
+<AccordionGroup>
+  <Accordion title="Lesson 2.1: Your First FHEVM Contract">
+    **Live Coding Session**:
+    1. Start with basic Solidity contract
+    2. Add FHEVM imports
+    3. Convert `uint` to `euint8`
+    4. Add encryption/decryption
+    5. Deploy and test
+
+    **Encourage Questions**:
+    - Stop after each step for questions
+    - Have students code along
+    - Use breakout rooms for pair programming
+
+    **Common Mistakes**:
+    - Forgetting to import TFHE
+    - Using `+` instead of `TFHE.add()`
+    - Not handling permissions correctly
+  </Accordion>
+
+  <Accordion title="Lesson 2.2: Contract Patterns">
+    **Code Review Session**:
+    - Show 3-4 real contract examples
+    - Discuss trade-offs of different patterns
+    - Security considerations
+
+    **Group Exercise**:
+    - Split into groups of 3-4
+    - Each group reviews one contract pattern
+    - Present findings to class (10 min each)
+  </Accordion>
+
+  <Accordion title="Lesson 2.3: Testing & Deployment">
+    **Hands-On Workshop**:
+    - Write tests together
+    - Deploy to testnet together
+    - Verify on block explorer
+
+    **Debugging Practice**:
+    - Introduce bugs intentionally
+    - Have students debug together
+    - Teach troubleshooting techniques
+  </Accordion>
+</AccordionGroup>
+
+### Week 3: Full-Stack dApps
+
+<AccordionGroup>
+  <Accordion title="Lesson 3.1: Frontend Integration">
+    **Prerequisites Check**:
+    - Ensure students know React basics
+    - Review async/await patterns
+    - Explain wagmi hooks
+
+    **Build Together**:
+    - Create simple frontend step-by-step
+    - Connect to MetaMask
+    - Call encrypted functions
+    - Display decrypted results
+  </Accordion>
+
+  <Accordion title="Lesson 3.2: Private Voting dApp">
+    **Full-Day Workshop**:
+    - Morning: Contract development
+    - Afternoon: Frontend integration
+    - Evening: Testing and debugging
+
+    **Use the Simulator**:
+    - The lesson includes a VotingSimulator component
+    - Demo it first
+    - Then build the real thing
+  </Accordion>
+
+  <Accordion title="Lesson 3.3: Advanced Patterns">
+    **Case Study Approach**:
+    - Show 3-4 production dApps
+    - Analyze architecture decisions
+    - Discuss scaling strategies
+
+    **Guest Speaker** (Optional):
+    - Invite a Zama engineer
+    - Or a developer who built with FHEVM
+  </Accordion>
+</AccordionGroup>
+
+### Week 4: Production
+
+<AccordionGroup>
+  <Accordion title="Lesson 4.1: Advanced Applications">
+    **Brainstorming Session**:
+    - What can you build with FHE?
+    - Students propose ideas
+    - Class discusses feasibility
+
+    **Use Cases**:
+    - Private auctions
+    - Confidential voting
+    - Encrypted DeFi
+    - Private gaming
+  </Accordion>
+
+  <Accordion title="Lesson 4.2: Gas Optimization">
+    **Profiling Workshop**:
+    - Measure gas costs
+    - Identify bottlenecks
+    - Optimize operations
+    - Re-measure and compare
+
+    **Challenge**:
+    - Give students a gas-heavy contract
+    - Competition to optimize it most
+  </Accordion>
+
+  <Accordion title="Lesson 4.3: Production & Security">
+    **Security Audit Exercise**:
+    - Review a contract together
+    - Identify vulnerabilities
+    - Discuss fixes
+
+    **Deployment Checklist**:
+    - Go through production checklist
+    - Emphasize testing and audits
+  </Accordion>
+</AccordionGroup>
+
+## Grading Homework
+
+Use the built-in grading rubrics for consistency:
+
+<Steps>
+  <Step title="Review Submission">
+    Each homework has detailed requirements. Check that students met all requirements.
+  </Step>
+
+  <Step title="Use Grading Criteria">
+    Every homework includes grading criteria with weights:
+
+    Example (Homework 2):
+    - Functionality (50%): Does the contract work?
+    - Code Quality (30%): Is it clean and readable?
+    - Documentation (20%): Is it well-documented?
+  </Step>
+
+  <Step title="Provide Feedback">
+    Use this template:
+
+    ```markdown
+    ## Homework 2 Feedback
+
+    **Overall Grade**: 85/100 (B)
+
+    ### Functionality (43/50)
+    - ✅ Contract deploys successfully
+    - ✅ Basic operations work
+    - ❌ Edge case handling missing
+    - Suggestion: Add input validation
+
+    ### Code Quality (27/30)
+    - ✅ Well-structured code
+    - ⚠️ Some magic numbers (use constants)
+    - ✅ Good naming conventions
+
+    ### Documentation (15/20)
+    - ✅ Functions documented
+    - ❌ Missing README
+    - Suggestion: Add setup instructions
+
+    **Overall**: Great work! Focus on edge cases and documentation.
+
+    **Next Steps**: Review Lesson 2.3 on testing patterns.
+    ```
+  </Step>
+
+  <Step title="Return Promptly">
+    Aim to return graded homework within 3-5 days for timely feedback.
+  </Step>
+</Steps>
+
+## Office Hours Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Scheduled Sessions" icon="calendar">
+    - Hold regular office hours (2-3x/week)
+    - Use Calendly for booking
+    - Limit to 15-30 min slots
+    - Record and share (with permission)
+  </Card>
+
+  <Card title="Async Support" icon="messages">
+    - Monitor Discord/Slack daily
+    - Respond to questions within 24 hours
+    - Encourage peer-to-peer help
+    - Create FAQ document
+  </Card>
+
+  <Card title="Group Sessions" icon="users">
+    - Host group debugging sessions
+    - Review common issues together
+    - Live code solutions
+    - Build community
+  </Card>
+
+  <Card title="1-on-1 Help" icon="user">
+    - Offer individual sessions for struggling students
+    - Screen sharing for debugging
+    - Personalized learning paths
+    - Encouragement and motivation
+  </Card>
+</CardGroup>
+
+## Capstone Project Guidance
+
+<Steps>
+  <Step title="Project Ideation (Week 3)">
+    Help students brainstorm ideas:
+
+    **Good Capstone Projects**:
+    - Private voting system (variations)
+    - Encrypted auction platform
+    - Confidential token transfers
+    - Private leaderboard/ranking
+    - Sealed-bid marketplace
+
+    **Scope Appropriately**:
+    - Can be built in 15 hours
+    - Uses 2-3 FHEVM concepts
+    - Has working frontend
+    - Deployable to testnet
+  </Step>
+
+  <Step title="Project Proposal (Due Friday, Week 3)">
+    Require 1-page proposal:
+
+    ```markdown
+    ## Capstone Proposal
+
+    **Project Name**: Private Prediction Market
+
+    **Description**: Users bet on outcomes privately. Results revealed only when market closes.
+
+    **FHEVM Features**:
+    - Encrypted bets (euint256)
+    - Private position tracking
+    - Secure result tallying
+
+    **Tech Stack**:
+    - Solidity + TFHE
+    - React + fhevmjs
+    - Hardhat for testing
+
+    **Milestones**:
+    - Mon: Contract development
+    - Tue: Testing
+    - Wed: Frontend
+    - Thu: Integration
+    - Fri: Presentation prep
+    ```
+  </Step>
+
+  <Step title="Check-Ins (Week 4)">
+    - Daily stand-ups (15 min)
+    - Mid-week code review
+    - Unblock students quickly
+  </Step>
+
+  <Step title="Final Presentations (Friday, Week 4)">
+    **Format** (5-7 min per student):
+    - 2 min: Problem and solution
+    - 3 min: Live demo
+    - 2 min: Technical deep dive
+    - Q&A from class
+
+    **Grading Criteria**:
+    - Working demo (40%)
+    - Code quality (30%)
+    - Presentation (20%)
+    - Creativity (10%)
+  </Step>
+</Steps>
+
+## Using Instructor Mode
+
+The platform has built-in instructor features:
+
+<Tabs>
+  <Tab title="Teaching Notes">
+    Toggle instructor mode in the AppBar to see:
+
+    - Pacing guidelines for each lesson
+    - Common student misconceptions
+    - Suggested activities and exercises
+    - Discussion prompts
+
+    These notes appear as highlighted boxes throughout lessons.
+  </Tab>
+
+  <Tab title="Progress Tracking">
+    Monitor student progress:
+
+    - View overall completion percentages
+    - See which lessons are bottlenecks
+    - Identify struggling students early
+
+    Access via the `/progress` route.
+  </Tab>
+
+  <Tab title="Quiz Results">
+    Review quiz performance:
+
+    - Which questions are commonly missed?
+    - Adjust teaching to address gaps
+    - Provide additional resources
+  </Tab>
+</Tabs>
+
+## Community Building
+
+<CardGroup cols={2}>
+  <Card title="Icebreaker (Week 1)" icon="handshake">
+    - Student introductions
+    - Share background and goals
+    - Form study groups
+    - Exchange contact info
+  </Card>
+
+  <Card title="Peer Learning" icon="users">
+    - Pair programming exercises
+    - Code review partners
+    - Study groups (3-4 students)
+    - Peer mentoring
+  </Card>
+
+  <Card title="Social Events" icon="pizza">
+    - Virtual coffee chats
+    - End-of-week social hour
+    - Graduation celebration
+    - Alumni network
+  </Card>
+
+  <Card title="Showcase Work" icon="trophy">
+    - Share projects publicly
+    - Blog posts or Twitter threads
+    - Submit to hackathons
+    - Build portfolio
+  </Card>
+</CardGroup>
+
+## Post-Bootcamp
+
+<Steps>
+  <Step title="Issue Certificates">
+    Create completion certificates for students who:
+    - Complete all 12 lessons
+    - Submit all 4 homework assignments
+    - Present capstone project
+
+    Use a template service like Accredible or create custom certificates.
+  </Step>
+
+  <Step title="Gather Feedback">
+    Send a survey:
+
+    - What was most valuable?
+    - What could be improved?
+    - Would you recommend this bootcamp?
+    - Any additional topics to cover?
+  </Step>
+
+  <Step title="Alumni Community">
+    - Create alumni channel on Discord
+    - Share job opportunities
+    - Invite to future events
+    - Encourage continued learning
+  </Step>
+
+  <Step title="Ongoing Support">
+    - Monthly alumni meetups
+    - Advanced topics sessions
+    - Hackathon team formation
+    - Networking opportunities
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Students Falling Behind">
+    **Signs**:
+    - Missing homework deadlines
+    - Not participating in discussions
+    - Confused during lessons
+
+    **Interventions**:
+    - 1-on-1 check-in
+    - Adjust pacing if needed
+    - Pair with stronger student
+    - Provide extra resources
+    - Extend deadlines if necessary
+  </Accordion>
+
+  <Accordion title="Low Engagement">
+    **Signs**:
+    - Quiet chat channels
+    - No questions during lessons
+    - Low homework quality
+
+    **Interventions**:
+    - Make lessons more interactive
+    - Use breakout rooms
+    - Gamify with leaderboards
+    - Increase social activities
+  </Accordion>
+
+  <Accordion title="Technical Issues">
+    **Signs**:
+    - Students can't access platform
+    - Contract deployments failing
+    - RPC errors
+
+    **Solutions**:
+    - Have backup RPC URLs
+    - Test all demos before sessions
+    - Maintain troubleshooting doc
+    - Have TA ready for tech support
+  </Accordion>
+</AccordionGroup>
+
+## Resources for Instructors
+
+<CardGroup cols={2}>
+  <Card title="Zama Documentation" icon="book" href="https://docs.zama.ai/fhevm">
+    Official FHEVM documentation for reference
+  </Card>
+
+  <Card title="Instructor Guide" icon="chalkboard" href="/instructor">
+    Built-in guide with teaching strategies
+  </Card>
+
+  <Card title="Student Experience" icon="graduation-cap" href="/guides/student-experience">
+    Understand the student journey
+  </Card>
+
+  <Card title="Customization Guide" icon="palette" href="/guides/customization">
+    Adapt content to your needs
+  </Card>
+</CardGroup>
+
+<Note>
+The bootcamp curriculum in `src/data/curriculum.ts` includes detailed instructor notes for every lesson. Review these before teaching!
+</Note>

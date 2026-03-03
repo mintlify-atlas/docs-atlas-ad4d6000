@@ -1,0 +1,236 @@
+---
+title: LessonView
+description: Main page component for rendering individual lessons with sections, quizzes, and navigation
+---
+
+## Overview
+
+The `LessonView` component is the primary page component for displaying lesson content. It manages lesson progression, quiz completion, and navigation between lessons.
+
+**Location:** `src/pages/LessonView.tsx`
+
+## Features
+
+- Displays lesson content with sections, objectives, and metadata
+- Integrates quiz functionality with completion tracking
+- Manages lesson completion state and progress
+- Provides navigation between lessons and weeks
+- Shows instructor notes in instructor mode
+- Triggers celebrations on lesson/quiz completion
+- Auto-scrolls to top on lesson change
+
+## Component Interface
+
+```tsx
+const LessonView: React.FC = () => {
+  // No props - uses URL params via React Router
+}
+```
+
+### URL Parameters
+
+<ParamField path="weekId" type="string" required>
+  The unique identifier for the week (e.g., "week1")
+</ParamField>
+
+<ParamField path="lessonId" type="string" required>
+  The unique identifier for the lesson (e.g., "fhe-introduction")
+</ParamField>
+
+## Dependencies
+
+### State Management
+
+- `useBootcampStore` - Manages completion state, quiz scores, instructor mode
+- `useTranslatedCurriculum` - Provides localized curriculum data
+
+### Data Helpers
+
+- `getLessonById()` - Retrieves lesson data
+- `getWeekById()` - Retrieves week data
+- `getNextLesson()` - Gets next lesson info for navigation
+- `getPrevLesson()` - Gets previous lesson info for navigation
+- `getTotalLessons()` - Returns total lesson count for progress calculation
+
+## Usage Example
+
+```tsx
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import LessonView from '@/pages/LessonView';
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/week/:weekId/lesson/:lessonId" element={<LessonView />} />
+      </Routes>
+    </BrowserRouter>
+  );
+}
+```
+
+### Navigating to a Lesson
+
+```tsx
+import { useNavigate } from 'react-router-dom';
+
+function WeekOverview() {
+  const navigate = useNavigate();
+  
+  const openLesson = (weekId: string, lessonId: string) => {
+    navigate(`/week/${weekId}/lesson/${lessonId}`);
+  };
+  
+  return (
+    <button onClick={() => openLesson('week1', 'fhe-introduction')}>
+      Open Introduction to FHE
+    </button>
+  );
+}
+```
+
+## Key Functionality
+
+### Lesson Completion
+
+The component handles lesson completion in two ways:
+
+1. **Manual Completion**: User clicks "Complete and Continue" button
+2. **Quiz Completion**: Automatically completes when quiz is passed
+
+```tsx
+const handleCompleteLesson = () => {
+  if (!completed) {
+    completeLesson(weekId, lessonId);
+    triggerConfetti();
+    showCelebration(...);
+  }
+  // Navigate to next lesson or homework
+};
+```
+
+### Quiz Integration
+
+```tsx
+const handleQuizComplete = (score: number, passed: boolean) => {
+  setQuizScore(weekId, lessonId, score, passed);
+  if (passed && !completed) {
+    completeLesson(weekId, lessonId);
+    triggerConfetti();
+    showCelebration(...);
+  }
+};
+```
+
+## Rendered Content
+
+### Header Section
+
+- Week and lesson badges
+- Estimated time
+- Completion status
+- Lesson title and description
+
+### Learning Objectives
+
+Renders `LearningObjectives` component with lesson objectives and completion status.
+
+### Instructor Notes (Conditional)
+
+Shows `InstructorNotes` component when:
+- `instructorMode` is enabled
+- Lesson has instructor notes
+
+### Lesson Sections
+
+Renders each section using `LessonSection` component with staggered animation.
+
+### Quiz (Conditional)
+
+Renders `QuizSection` component if lesson includes a quiz:
+
+```tsx
+{lesson.quiz && (
+  <QuizSection 
+    key={`${weekId}-${lessonId}`} 
+    quiz={lesson.quiz} 
+    onComplete={handleQuizComplete} 
+  />
+)}
+```
+
+### Navigation
+
+- **Back Button**: Returns to week overview
+- **Previous Lesson**: Navigates to previous lesson (if available)
+- **Complete/Next Button**: Completes lesson and navigates forward
+
+## State Management
+
+### Local State
+
+No local state - relies entirely on:
+- URL parameters
+- Global bootcamp store
+- Curriculum data
+
+### Side Effects
+
+```tsx
+// Set current location on mount/change
+useEffect(() => {
+  if (weekId && lessonId) {
+    setCurrentLocation(weekId, lessonId);
+  }
+}, [weekId, lessonId, setCurrentLocation]);
+
+// Scroll to top on lesson change
+useEffect(() => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}, [weekId, lessonId]);
+```
+
+## Error Handling
+
+Displays fallback UI when lesson/week not found:
+
+```tsx
+if (!week || !lesson || !weekId || !lessonId) {
+  return (
+    <div className="max-w-4xl mx-auto p-8 text-center">
+      <h1 className="text-2xl font-bold mb-4">Lesson not found</h1>
+      <Button onClick={() => navigate('/')}>Back to Dashboard</Button>
+    </div>
+  );
+}
+```
+
+## Animation
+
+Uses Framer Motion for:
+- Header fade-in on load
+- Staggered section animations
+- Smooth transitions
+
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: index * 0.05 }}
+>
+  <LessonSection section={section} index={index} />
+</motion.div>
+```
+
+## Related Components
+
+- [QuizSection](/api/components/quiz-section) - Quiz rendering and interaction
+- `LessonSection` - Individual lesson section rendering
+- `LearningObjectives` - Displays lesson objectives
+- `InstructorNotes` - Shows instructor-only content
+
+## See Also
+
+- [HomeworkPage](/api/components/homework-page) - Week homework display
+- [Lesson Types](/api/types/lesson) - Lesson data structure
+- [Bootcamp Store](/api/state/bootcamp-store) - Progress tracking

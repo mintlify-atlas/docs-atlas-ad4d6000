@@ -1,0 +1,451 @@
+---
+title: Lesson System
+description: Deep dive into lesson structure, sections, learning objectives, and instructor notes in the FHEVM Bootcamp
+icon: 'book'
+---
+
+## Overview
+
+Lessons are the core learning units of the bootcamp. Each lesson is a self-contained module with clear objectives, multi-modal content, optional quizzes, and instructor guidance.
+
+## Lesson Data Structure
+
+### Core Lesson Interface
+
+```typescript src/data/curriculum.ts
+export interface Lesson {
+  id: string;                  // Unique identifier (e.g. 'welcome-to-fhevm')
+  title: string;               // Display title
+  description: string;         // One-line summary
+  estimatedMinutes: number;    // Time to complete
+  icon: string;                // Lucide icon name
+  sections: Section[];         // Content sections
+  quiz?: Quiz;                 // Optional knowledge check
+  instructorNotes: string[];   // Teaching guidance
+  codeTemplate?: CodeTemplate; // Optional starter/solution code
+  objectives: string[];        // Learning outcomes
+}
+```
+
+<Info>
+Lessons are always nested inside `Week` objects. A lesson cannot exist independently outside a week.
+</Info>
+
+## Learning Objectives
+
+Every lesson defines specific, measurable learning objectives:
+
+```typescript Example from Week 1, Lesson 3
+objectives: [
+  'List all FHEVM encrypted types and when to use each one',
+  'Write homomorphic operations: add, sub, mul, comparison, select',
+  'Explain the role of FHE.allowThis() and FHE.allow()',
+  'Describe public vs. private decryption and when to use each',
+  'Draw the FHEVM architecture diagram from memory',
+]
+```
+
+These objectives are displayed prominently at the start of each lesson:
+
+```tsx src/components/lesson/LearningObjectives.tsx
+import { LearningObjectives } from '@/components/lesson/LearningObjectives';
+
+<LearningObjectives objectives={lesson.objectives} completed={completed} />
+```
+
+<Check>
+Objectives use action verbs (List, Write, Explain, Describe, Draw) to make outcomes measurable.
+</Check>
+
+## Lesson Sections
+
+Sections are the building blocks of lesson content. Each section has a specific type and purpose.
+
+### Section Interface
+
+```typescript src/data/curriculum.ts
+export interface Section {
+  id: string;
+  title: string;
+  type: 'text' | 'code' | 'interactive' | 'video' | 'diagram' | 'quiz';
+  content: string[];       // Array of paragraphs
+  code?: CodeSnippet;
+  tips?: string[];
+  keyPoints?: string[];
+  videoId?: string;        // YouTube video ID
+  diagramCode?: string;    // Mermaid diagram code
+  componentId?: string;    // Reference to interactive component
+}
+```
+
+### Section Rendering
+
+Sections are rendered by the `LessonSection` component:
+
+```tsx src/pages/LessonView.tsx
+import { LessonSection } from '@/components/lesson/LessonSection';
+
+{lesson.sections.map((section, index) => (
+  <LessonSection key={section.id} section={section} index={index} />
+))}
+```
+
+## Section Types in Detail
+
+### Text Sections
+
+Standard explanatory content with optional callouts:
+
+```typescript
+{
+  id: 'what-is-fhe',
+  title: 'What is Fully Homomorphic Encryption?',
+  type: 'text',
+  content: [
+    'FHE allows computation on encrypted data without ever decrypting it.',
+    'Think of it as performing math on a locked safe.',
+  ],
+  keyPoints: [
+    'Compute on encrypted data without decryption',
+    'Results remain encrypted until explicitly revealed',
+  ],
+  tips: [
+    'FHE is computationally expensive - use the smallest type that fits your data',
+  ]
+}
+```
+
+**Rendered as:**
+- Paragraphs with proper spacing
+- Highlighted key points in a primary-colored callout box
+- Tips in an amber-colored box
+
+### Code Sections
+
+Syntax-highlighted code with context:
+
+```typescript
+{
+  id: 'encrypted-counter',
+  title: 'Converting to an Encrypted Counter',
+  type: 'code',
+  content: [
+    'Now let us convert this to use FHEVM encrypted types.',
+  ],
+  code: {
+    language: 'solidity',
+    code: `// SPDX-License-Identifier: BSD-3-Clause-Clear
+pragma solidity ^0.8.24;
+
+import { FHE, euint32 } from "@fhevm/solidity/lib/FHE.sol";
+
+contract EncryptedCounter {
+    euint32 private counter;
+}`,
+    filename: 'EncryptedCounter.sol',
+    description: 'A contract with encrypted state'
+  }
+}
+```
+
+**Rendered with:**
+- Syntax highlighting via `react-syntax-highlighter`
+- Filename badge
+- Copy button
+- Description text
+
+<Note>
+See `src/components/ui/code-block.tsx` for the CodeBlock component implementation.
+</Note>
+
+### Video Sections
+
+Embedded YouTube videos with responsive 16:9 aspect ratio:
+
+```typescript
+{
+  id: 'week1-video',
+  title: 'Video: Introduction to Confidential Smart Contracts',
+  type: 'video',
+  videoId: '1FtbyHZwNX4',  // YouTube video ID
+  content: [
+    'Watch this Zama tutorial by blockchain engineer Clément Danjou.',
+  ]
+}
+```
+
+**Rendered as:**
+- Responsive iframe container (56.25% padding-bottom for 16:9)
+- No related videos (`rel=0`)
+- Modest YouTube branding
+
+```tsx src/components/lesson/LessonSection.tsx
+{section.type === 'video' && section.videoId && (
+  <div className="rounded-lg overflow-hidden border">
+    <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+      <iframe
+        className="absolute inset-0 w-full h-full"
+        src={`https://www.youtube.com/embed/${section.videoId}?rel=0&modestbranding=1`}
+        title={section.title}
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media"
+        allowFullScreen
+      />
+    </div>
+  </div>
+)}
+```
+
+### Diagram Sections
+
+Mermaid diagrams for architecture and flow visualization:
+
+```typescript
+{
+  id: 'architecture-diagram',
+  title: 'FHEVM Architecture',
+  type: 'diagram',
+  content: ['The full FHEVM architecture involves several components:'],
+  diagramCode: `flowchart TB
+    Browser["Browser / dApp"]
+    Contract["FHEVM Smart Contract"]
+    KMS["Key Management Service"]
+    Browser -->|"1. Encrypt"| Contract
+    Contract -->|"2. Compute"| Contract
+    Contract -->|"3. Decrypt"| KMS`
+}
+```
+
+**Rendering logic:**
+
+```tsx src/components/lesson/LessonSection.tsx
+useEffect(() => {
+  if (section.type === 'diagram' && section.diagramCode && diagramRef.current) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+    });
+    mermaid.render(`mermaid-${section.id}`, section.diagramCode)
+      .then(({ svg }) => {
+        if (diagramRef.current) diagramRef.current.innerHTML = svg;
+      });
+  }
+}, [section]);
+```
+
+<Warning>
+Mermaid diagrams require client-side rendering. They won't appear in SSR contexts.
+</Warning>
+
+### Interactive Sections
+
+Custom React components for hands-on exploration:
+
+```typescript
+{
+  id: 'homomorphic-operations',
+  title: 'Homomorphic Operations',
+  type: 'interactive',
+  componentId: 'fhe-basics-contracts',
+  content: [
+    'Use the tabs below to explore one minimal contract per operation.',
+  ]
+}
+```
+
+**Component mapping:**
+
+```tsx src/components/lesson/LessonSection.tsx
+if (section.componentId === 'fhe-basics-contracts') {
+  return <FHEBasicsTabs contracts={getContractsByCategory('basics')} />;
+}
+
+if (section.componentId === 'private-voting') {
+  return (
+    <>
+      <VotingSimulator />
+      <ContractExplorer contracts={contractExamples} />
+    </>
+  );
+}
+```
+
+Supported component IDs:
+- `fhe-basics-contracts` - Tabbed view of basic FHEVM operations
+- `connect-wallet` - Wallet connection UI
+- `deploy-test-counter` - Contract deployment interface
+- `private-voting` - Voting simulator + contract explorer
+- `testing-playground` - Advanced DeFi contract examples
+
+## Instructor Notes
+
+Each lesson includes practical teaching guidance:
+
+```typescript src/data/curriculum.ts
+instructorNotes: [
+  'Start with the "why": show a token transfer on Etherscan (sender, receiver, amount visible). Ask: "Would you use this to pay your salary?" This motivates FHE.',
+  'The HTTPS analogy is your best friend: HTTPS encrypts in transit, server sees plaintext. FHE encrypts in compute.',
+  'Estimated pacing: 10 min lecture, 10 min slides, 10 min discussion/Q&A.',
+]
+```
+
+**Rendered conditionally:**
+
+```tsx src/pages/LessonView.tsx
+import { InstructorNotes } from '@/components/lesson/InstructorNotes';
+
+{instructorMode && lesson.instructorNotes.length > 0 && (
+  <InstructorNotes notes={lesson.instructorNotes} />
+)}
+```
+
+The `InstructorNotes` component:
+- Shows only when instructor mode is enabled
+- Displays as an expandable amber-colored card
+- Includes collapsible UI to reduce clutter
+
+```tsx src/components/lesson/InstructorNotes.tsx
+export const InstructorNotes: React.FC<InstructorNotesProps> = ({ notes }) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  return (
+    <Card className="border-amber-500/30 bg-amber-500/5">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <GraduationCap className="h-4 w-4 text-amber-600" />
+          Instructor Notes
+        </CardTitle>
+        <Button onClick={() => setExpanded(!expanded)}>
+          {expanded ? 'Collapse' : 'Expand'}
+        </Button>
+      </CardHeader>
+      {expanded && (
+        <CardContent>
+          <ul>{notes.map((note) => <li>{note}</li>)}</ul>
+        </CardContent>
+      )}
+    </Card>
+  );
+};
+```
+
+<Tip>
+Instructor notes are written in second person ("you") and include:
+- Pacing recommendations
+- Common student mistakes
+- Analogies and examples that work well
+- Technical gotchas to emphasize
+</Tip>
+
+## Lesson Navigation
+
+Lessons provide sequential navigation:
+
+```tsx src/pages/LessonView.tsx
+const nextLessonInfo = getNextLesson(weekId, lessonId, curriculum);
+const prevLessonInfo = getPrevLesson(weekId, lessonId, curriculum);
+
+<Button onClick={() => navigate(`/week/${prevLessonInfo.weekId}/lesson/${prevLessonInfo.lessonId}`)}>
+  <ArrowLeft /> Previous Lesson
+</Button>
+
+<Button onClick={handleCompleteLesson}>
+  {completed ? 'Next Lesson' : 'Complete & Continue'}
+  <ArrowRight />
+</Button>
+```
+
+**Navigation logic:**
+- If there's a next lesson in the same week, navigate to it
+- If this is the last lesson in the week, navigate to homework
+- Previous button goes to the prior lesson or week overview
+
+## Lesson Completion
+
+Lessons are marked complete when:
+1. User clicks "Complete & Continue" button, OR
+2. User passes the lesson quiz (if present)
+
+```tsx src/pages/LessonView.tsx
+const handleCompleteLesson = () => {
+  if (!completed) {
+    completeLesson(weekId, lessonId);
+    triggerConfetti();
+    showCelebration(
+      `You finished "${lesson.title}"`,
+      `Week ${week.number} | Lesson ${week.number}.${lessonIndex + 1}`,
+      totalCompleted,
+      getTotalLessons()
+    );
+  }
+  // Navigate to next lesson or homework
+};
+```
+
+<Check>
+Completion triggers:
+- Confetti animation
+- Celebration modal
+- Progress persistence to localStorage
+- Badge update on dashboard
+</Check>
+
+## Real Example: "FHE Deep Dive" Lesson
+
+Here's the complete structure of Week 1, Lesson 3:
+
+```typescript src/data/curriculum.ts
+{
+  id: 'fhe-deep-dive',
+  title: 'FHE Deep Dive',
+  description: 'Master encrypted types, homomorphic operations, and the FHEVM architecture in depth',
+  estimatedMinutes: 60,
+  icon: 'Shield',
+  
+  objectives: [
+    'List all FHEVM encrypted types and when to use each one',
+    'Write homomorphic operations: add, sub, mul, comparison, select',
+    'Explain the role of FHE.allowThis() and FHE.allow()',
+  ],
+  
+  sections: [
+    {
+      id: 'encrypted-types',
+      title: 'FHEVM Encrypted Types',
+      type: 'text',
+      content: ['FHEVM provides encrypted equivalents...'],
+      keyPoints: ['Use the smallest type that fits your data']
+    },
+    {
+      id: 'homomorphic-operations',
+      title: 'Homomorphic Operations',
+      type: 'interactive',
+      componentId: 'fhe-basics-contracts',
+      content: ['Use the tabs below to explore...']
+    },
+    {
+      id: 'architecture-diagram',
+      title: 'FHEVM Architecture',
+      type: 'diagram',
+      diagramCode: `flowchart TB...`
+    }
+  ],
+  
+  instructorNotes: [
+    'This is the densest lesson - consider splitting across two sessions',
+    'Common mistake: Forgetting FHE.allowThis() after arithmetic',
+  ],
+  
+  quiz: { /* 5 questions on FHE types and operations */ }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quizzes" icon="brain" href="./quizzes">
+    Learn about quiz structure, question types, and scoring
+  </Card>
+  <Card title="Instructor Mode" icon="graduation-cap" href="./instructor-mode">
+    Explore teaching notes and facilitation features
+  </Card>
+</CardGroup>

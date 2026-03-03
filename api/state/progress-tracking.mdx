@@ -1,0 +1,485 @@
+---
+title: 'Progress Tracking'
+description: 'Types and interfaces for tracking lesson completion, quiz scores, and homework progress'
+---
+
+## Overview
+
+The progress tracking system uses TypeScript interfaces to structure student progress data across lessons, quizzes, and homework assignments. All progress data is stored in the Zustand store and persisted to local storage.
+
+## Type Definitions
+
+### LearningMode
+
+```typescript
+type LearningMode = 'self-paced' | 'cohort';
+```
+
+Defines the two learning modes available in the bootcamp:
+
+- **`'self-paced'`**: All weeks and lessons are immediately accessible
+- **`'cohort'`**: Sequential access requiring completion of previous content
+
+### HomeworkStatus
+
+```typescript
+type HomeworkStatus = 'not-started' | 'in-progress' | 'submitted' | 'graded';
+```
+
+Tracks the lifecycle of homework assignments:
+
+- **`'not-started'`**: Homework has not been started
+- **`'in-progress'`**: Student is actively working on homework
+- **`'submitted'`**: Homework has been submitted for review
+- **`'graded'`**: Homework has been graded by instructor
+
+## Progress Interfaces
+
+### LessonProgress
+
+Tracks individual lesson completion and engagement metrics.
+
+```typescript
+interface LessonProgress {
+  completed: boolean;
+  quizScore?: number;
+  quizPassed?: boolean;
+  timeSpentMinutes: number;
+  completedAt?: string;
+}
+```
+
+<ResponseField name="completed" type="boolean" required>
+  Whether the lesson has been marked as completed.
+</ResponseField>
+
+<ResponseField name="quizScore" type="number">
+  The quiz score for this lesson, if a quiz was taken. Typically a value between 0-100.
+</ResponseField>
+
+<ResponseField name="quizPassed" type="boolean">
+  Whether the student passed the quiz. Set alongside `quizScore`.
+</ResponseField>
+
+<ResponseField name="timeSpentMinutes" type="number" required default="0">
+  Total time spent on this lesson in minutes. Accumulated via the `addTimeSpent` action.
+</ResponseField>
+
+<ResponseField name="completedAt" type="string">
+  ISO 8601 timestamp of when the lesson was completed. Set automatically by `completeLesson`.
+  
+  Example: `"2026-03-03T15:30:00.000Z"`
+</ResponseField>
+
+#### Example
+
+```typescript
+const lessonProgress: LessonProgress = {
+  completed: true,
+  quizScore: 85,
+  quizPassed: true,
+  timeSpentMinutes: 45,
+  completedAt: "2026-03-03T15:30:00.000Z"
+};
+```
+
+### HomeworkProgress
+
+Tracks homework assignment status and checklist completion.
+
+```typescript
+interface HomeworkProgress {
+  status: HomeworkStatus;
+  checklist: Record<string, boolean>;
+  submittedAt?: string;
+  grade?: number;
+}
+```
+
+<ResponseField name="status" type="HomeworkStatus" required>
+  Current status of the homework assignment. See [HomeworkStatus](#homeworkstatus).
+</ResponseField>
+
+<ResponseField name="checklist" type="Record<string, boolean>" required>
+  Key-value pairs tracking individual checklist items. Keys are item IDs, values indicate completion.
+  
+  Managed via `toggleHomeworkChecklistItem` action.
+</ResponseField>
+
+<ResponseField name="submittedAt" type="string">
+  ISO 8601 timestamp of when the homework was submitted. Automatically set when status changes to `'submitted'`.
+  
+  Example: `"2026-03-03T18:00:00.000Z"`
+</ResponseField>
+
+<ResponseField name="grade" type="number">
+  The grade assigned to the homework, typically 0-100. Set when status is `'graded'`.
+</ResponseField>
+
+#### Example
+
+```typescript
+const homeworkProgress: HomeworkProgress = {
+  status: 'submitted',
+  checklist: {
+    'task-1': true,
+    'task-2': true,
+    'task-3': false
+  },
+  submittedAt: "2026-03-03T18:00:00.000Z",
+  grade: 92
+};
+```
+
+### WeekProgress
+
+Aggregates all progress data for a single week.
+
+```typescript
+interface WeekProgress {
+  lessons: Record<string, LessonProgress>;
+  homework: HomeworkProgress;
+}
+```
+
+<ResponseField name="lessons" type="Record<string, LessonProgress>" required>
+  Progress data for all lessons in the week, indexed by lesson ID.
+  
+  Each lesson ID maps to a [LessonProgress](#lessonprogress) object.
+</ResponseField>
+
+<ResponseField name="homework" type="HomeworkProgress" required>
+  Progress data for the week's homework assignment. See [HomeworkProgress](#homeworkprogress).
+</ResponseField>
+
+#### Example
+
+```typescript
+const weekProgress: WeekProgress = {
+  lessons: {
+    'lesson-1-1': {
+      completed: true,
+      quizScore: 90,
+      quizPassed: true,
+      timeSpentMinutes: 30,
+      completedAt: "2026-03-01T10:00:00.000Z"
+    },
+    'lesson-1-2': {
+      completed: true,
+      timeSpentMinutes: 45,
+      completedAt: "2026-03-02T14:30:00.000Z"
+    },
+    'lesson-1-3': {
+      completed: false,
+      timeSpentMinutes: 15
+    }
+  },
+  homework: {
+    status: 'in-progress',
+    checklist: {
+      'setup-env': true,
+      'deploy-contract': false
+    }
+  }
+};
+```
+
+## Initial Progress State
+
+The store initializes progress data for all weeks and lessons in the curriculum:
+
+```typescript
+function createInitialProgress(): Record<string, WeekProgress> {
+  const progress: Record<string, WeekProgress> = {};
+  curriculum.weeks.forEach((week) => {
+    const lessons: Record<string, LessonProgress> = {};
+    week.lessons.forEach((lesson) => {
+      lessons[lesson.id] = {
+        completed: false,
+        timeSpentMinutes: 0,
+      };
+    });
+    progress[week.id] = {
+      lessons,
+      homework: {
+        status: 'not-started',
+        checklist: {},
+      },
+    };
+  });
+  return progress;
+}
+```
+
+Each week starts with:
+- All lessons marked as incomplete
+- Zero time spent on each lesson
+- Homework status set to `'not-started'`
+- Empty homework checklist
+
+## Progress Methods
+
+These methods are available on the `useBootcampStore` hook for working with progress data. See [bootcamp-store](/api/state/bootcamp-store) for detailed method documentation.
+
+### Lesson Progress Methods
+
+<ParamField path="completeLesson" type="(weekId: string, lessonId: string) => void">
+  Marks a lesson as completed and records the completion timestamp.
+</ParamField>
+
+<ParamField path="setQuizScore" type="(weekId: string, lessonId: string, score: number, passed: boolean) => void">
+  Records a quiz score and pass/fail status.
+</ParamField>
+
+<ParamField path="addTimeSpent" type="(weekId: string, lessonId: string, minutes: number) => void">
+  Adds time spent on a lesson to the running total.
+</ParamField>
+
+<ParamField path="isLessonCompleted" type="(weekId: string, lessonId: string) => boolean">
+  Checks if a specific lesson has been completed.
+</ParamField>
+
+### Homework Progress Methods
+
+<ParamField path="updateHomeworkStatus" type="(weekId: string, status: HomeworkStatus) => void">
+  Updates the status of a week's homework. Automatically records submission timestamp.
+</ParamField>
+
+<ParamField path="toggleHomeworkChecklistItem" type="(weekId: string, itemId: string) => void">
+  Toggles a checklist item in a week's homework.
+</ParamField>
+
+### Week Progress Methods
+
+<ParamField path="getWeekProgress" type="(weekId: string) => { completed: number; total: number; percentage: number }">
+  Calculates progress statistics for a specific week.
+</ParamField>
+
+<ParamField path="isWeekCompleted" type="(weekId: string) => boolean">
+  Checks if all lessons in a week have been completed.
+</ParamField>
+
+<ParamField path="canAccessWeek" type="(weekId: string) => boolean">
+  Determines if a week is accessible based on learning mode and progress.
+</ParamField>
+
+### Overall Progress Methods
+
+<ParamField path="getOverallProgress" type="() => { completed: number; total: number; percentage: number }">
+  Calculates progress statistics across all weeks.
+</ParamField>
+
+<ParamField path="resetProgress" type="() => void">
+  Resets all progress to initial state.
+</ParamField>
+
+## Usage Examples
+
+### Tracking Lesson Completion
+
+```typescript
+import { useBootcampStore } from '@/state/bootcampStore';
+
+function LessonCompleteButton({ weekId, lessonId }: { weekId: string; lessonId: string }) {
+  const completeLesson = useBootcampStore((state) => state.completeLesson);
+  const addTimeSpent = useBootcampStore((state) => state.addTimeSpent);
+  const progress = useBootcampStore(
+    (state) => state.progress[weekId]?.lessons[lessonId]
+  );
+  
+  const handleComplete = () => {
+    // Mark lesson as complete
+    completeLesson(weekId, lessonId);
+    
+    // Add estimated time
+    addTimeSpent(weekId, lessonId, 30);
+  };
+  
+  return (
+    <div>
+      <button onClick={handleComplete} disabled={progress?.completed}>
+        {progress?.completed ? 'Completed ✓' : 'Mark as Complete'}
+      </button>
+      {progress?.completedAt && (
+        <p>Completed: {new Date(progress.completedAt).toLocaleDateString()}</p>
+      )}
+      <p>Time spent: {progress?.timeSpentMinutes || 0} minutes</p>
+    </div>
+  );
+}
+```
+
+### Managing Quiz Results
+
+```typescript
+function QuizResults({ weekId, lessonId, score }: { weekId: string; lessonId: string; score: number }) {
+  const setQuizScore = useBootcampStore((state) => state.setQuizScore);
+  const showCelebration = useBootcampStore((state) => state.showCelebration);
+  
+  const passingScore = 70;
+  const passed = score >= passingScore;
+  
+  const handleSaveScore = () => {
+    setQuizScore(weekId, lessonId, score, passed);
+    
+    if (passed) {
+      showCelebration(
+        'Quiz Passed!',
+        `You scored ${score}%`,
+        1,
+        1
+      );
+    }
+  };
+  
+  return (
+    <div>
+      <h3>Your Score: {score}%</h3>
+      <p>{passed ? 'Passed ✓' : 'Did not pass'}</p>
+      <button onClick={handleSaveScore}>Save Score</button>
+    </div>
+  );
+}
+```
+
+### Homework Checklist
+
+```typescript
+function HomeworkChecklist({ weekId, items }: { weekId: string; items: Array<{ id: string; label: string }> }) {
+  const homework = useBootcampStore(
+    (state) => state.progress[weekId]?.homework
+  );
+  const toggleItem = useBootcampStore(
+    (state) => state.toggleHomeworkChecklistItem
+  );
+  const updateStatus = useBootcampStore(
+    (state) => state.updateHomeworkStatus
+  );
+  
+  const allComplete = items.every((item) => homework?.checklist[item.id]);
+  
+  const handleSubmit = () => {
+    if (allComplete) {
+      updateStatus(weekId, 'submitted');
+    }
+  };
+  
+  return (
+    <div>
+      <h3>Homework Tasks</h3>
+      {items.map((item) => (
+        <label key={item.id}>
+          <input
+            type="checkbox"
+            checked={homework?.checklist[item.id] || false}
+            onChange={() => toggleItem(weekId, item.id)}
+          />
+          {item.label}
+        </label>
+      ))}
+      <button onClick={handleSubmit} disabled={!allComplete}>
+        Submit Homework
+      </button>
+      {homework?.submittedAt && (
+        <p>Submitted: {new Date(homework.submittedAt).toLocaleString()}</p>
+      )}
+      {homework?.grade && <p>Grade: {homework.grade}%</p>}
+    </div>
+  );
+}
+```
+
+### Week Progress Display
+
+```typescript
+function WeekProgressCard({ weekId }: { weekId: string }) {
+  const getWeekProgress = useBootcampStore((state) => state.getWeekProgress);
+  const isCompleted = useBootcampStore((state) => state.isWeekCompleted(weekId));
+  const canAccess = useBootcampStore((state) => state.canAccessWeek(weekId));
+  
+  const progress = getWeekProgress(weekId);
+  
+  return (
+    <div>
+      <h3>Week {weekId}</h3>
+      <div>
+        <div style={{ width: `${progress.percentage}%` }}>
+          {progress.percentage}%
+        </div>
+      </div>
+      <p>
+        {progress.completed} of {progress.total} lessons completed
+      </p>
+      {isCompleted && <p>✓ Week Complete!</p>}
+      {!canAccess && <p>🔒 Complete previous week to unlock</p>}
+    </div>
+  );
+}
+```
+
+### Overall Bootcamp Progress
+
+```typescript
+function BootcampDashboard() {
+  const getOverallProgress = useBootcampStore((state) => state.getOverallProgress);
+  const progress = getOverallProgress();
+  
+  return (
+    <div>
+      <h2>Bootcamp Progress</h2>
+      <div>
+        <div style={{ width: `${progress.percentage}%` }}>
+          {progress.percentage}%
+        </div>
+      </div>
+      <p>
+        {progress.completed} of {progress.total} total lessons completed
+      </p>
+    </div>
+  );
+}
+```
+
+## Access Control
+
+Progress data is used to determine access to content in cohort mode:
+
+```typescript
+// Week access: previous week must be complete
+const canAccessWeek = (weekId: string) => {
+  if (learningMode === 'self-paced') return true;
+  
+  const weekIndex = curriculum.weeks.findIndex((w) => w.id === weekId);
+  if (weekIndex <= 0) return true;
+  
+  const prevWeekId = curriculum.weeks[weekIndex - 1].id;
+  return isWeekCompleted(prevWeekId);
+};
+
+// Lesson access: previous lesson must be complete
+const canAccessLesson = (weekId: string, lessonId: string) => {
+  if (!canAccessWeek(weekId)) return false;
+  if (learningMode === 'self-paced') return true;
+  
+  const week = curriculum.weeks.find((w) => w.id === weekId);
+  if (!week) return false;
+  
+  const lessonIndex = week.lessons.findIndex((l) => l.id === lessonId);
+  if (lessonIndex <= 0) return true;
+  
+  const prevLessonId = week.lessons[lessonIndex - 1].id;
+  return isLessonCompleted(weekId, prevLessonId);
+};
+```
+
+## Data Persistence
+
+All progress data is persisted to local storage via Zustand's persist middleware under the key `'fhevm-bootcamp-progress'`. This includes:
+
+- All lesson completion data
+- Quiz scores and results
+- Homework status and checklists
+- Time tracking data
+- Completion timestamps
+
+Progress data is automatically loaded when the store initializes and saved whenever it changes.

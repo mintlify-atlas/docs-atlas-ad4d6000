@@ -1,0 +1,403 @@
+---
+title: Quiz System
+description: Interactive quiz features including question types, scoring, instant feedback, and progress tracking
+icon: 'brain'
+---
+
+## Overview
+
+Quizzes provide knowledge checks at the end of lessons. They feature instant feedback, explanations for each answer, and configurable passing scores. Quizzes are optional but recommended for reinforcing key concepts.
+
+<Info>
+Quizzes are **lesson-scoped** - they live inside the `Lesson` interface as an optional `quiz` field.
+</Info>
+
+## Quiz Data Structure
+
+### Quiz Interface
+
+```typescript src/data/curriculum.ts
+export interface Quiz {
+  title: string;
+  description: string;
+  questions: QuizQuestion[];
+  passingScore: number;  // Percentage (0-100)
+}
+
+export interface QuizQuestion {
+  id: number | string;
+  question: string;
+  options: string[];       // Array of 2-4 answer choices
+  correctAnswer: number;   // Index of correct option (0-based)
+  explanation: string;     // Shown after answering
+  category?: string;       // Optional grouping (e.g. 'fhe_concept', 'architecture')
+}
+```
+
+## Example Quiz Definition
+
+Here's the quiz from "Welcome to FHEVM" (Week 1, Lesson 1):
+
+```typescript src/data/curriculum.ts
+quiz: {
+  title: 'FHE Fundamentals Quiz',
+  description: 'Test your understanding of FHE and FHEVM basics',
+  passingScore: 70,
+  questions: [
+    {
+      id: 1,
+      question: 'What does FHE stand for?',
+      options: [
+        'Fully Homomorphic Encryption',
+        'Fast Hash Encryption',
+        'Federated Hash Encryption',
+        'Fully Hybrid Encryption',
+      ],
+      correctAnswer: 0,
+      explanation: 'FHE stands for Fully Homomorphic Encryption, which allows computation on encrypted data without decrypting it.',
+      category: 'fhe_concept',
+    },
+    {
+      id: 2,
+      question: 'What is the main advantage of FHEVM over regular smart contracts?',
+      options: [
+        'Faster execution speed',
+        'Lower gas costs',
+        'Computation on encrypted data while maintaining privacy',
+        'Better user interface',
+      ],
+      correctAnswer: 2,
+      explanation: 'FHEVM enables computation on encrypted data while maintaining privacy throughout the entire process.',
+      category: 'fhe_concept',
+    },
+  ]
+}
+```
+
+<Tip>
+Questions use **zero-based indexing** for `correctAnswer`. An answer of `0` means the first option is correct.
+</Tip>
+
+## Quiz Component Architecture
+
+### QuizSection Component
+
+The main quiz UI is implemented in `QuizSection.tsx`:
+
+```tsx src/components/lesson/QuizSection.tsx
+import { QuizSection } from '@/components/lesson/QuizSection';
+
+<QuizSection 
+  quiz={lesson.quiz} 
+  onComplete={(score, passed) => {
+    setQuizScore(weekId, lessonId, score, passed);
+    if (passed) completeLesson(weekId, lessonId);
+  }} 
+/>
+```
+
+**Props:**
+- `quiz: Quiz` - The quiz data
+- `onComplete: (score: number, passed: boolean) => void` - Callback when quiz finishes
+
+### State Management
+
+```tsx src/components/lesson/QuizSection.tsx
+const [currentQuestion, setCurrentQuestion] = useState(0);
+const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+const [showExplanation, setShowExplanation] = useState(false);
+const [correctCount, setCorrectCount] = useState(0);
+const [finished, setFinished] = useState(false);
+const [answers, setAnswers] = useState<(number | null)[]>(
+  new Array(quiz.questions.length).fill(null)
+);
+```
+
+## Quiz Flow
+
+<Steps>
+  <Step title="Display Question">
+    Show question text, progress counter, and answer options as buttons.
+  </Step>
+  
+  <Step title="User Selects Answer">
+    Click handler:
+    ```tsx
+    const handleSelectAnswer = (answerIndex: number) => {
+      setSelectedAnswer(answerIndex);
+      setShowExplanation(true);
+      if (answerIndex === question.correctAnswer) {
+        setCorrectCount((c) => c + 1);
+      }
+    };
+    ```
+  </Step>
+  
+  <Step title="Show Instant Feedback">
+    - Correct answer highlighted in green
+    - Incorrect selection highlighted in red
+    - Explanation card displayed
+    - "Next Question" button appears
+  </Step>
+  
+  <Step title="Advance or Finish">
+    ```tsx
+    const handleNext = () => {
+      if (currentQuestion < totalQuestions - 1) {
+        setCurrentQuestion((c) => c + 1);
+        setSelectedAnswer(null);
+        setShowExplanation(false);
+      } else {
+        setFinished(true);
+        onComplete(score, passed);
+      }
+    };
+    ```
+  </Step>
+  
+  <Step title="Display Results">
+    Show final score, pass/fail status, and option to retake.
+  </Step>
+</Steps>
+
+## Visual Feedback
+
+### Answer Options
+
+Options are rendered as full-width buttons with dynamic styling:
+
+```tsx src/components/lesson/QuizSection.tsx
+{question.options.map((option, i) => {
+  let className = 'w-full justify-start text-left h-auto py-3 px-4';
+  
+  if (showExplanation) {
+    if (i === question.correctAnswer) {
+      className += ' border-green-500 bg-green-500/10 text-green-700';
+    } else if (i === selectedAnswer && !isCorrect) {
+      className += ' border-red-500 bg-red-500/10 text-red-700';
+    } else {
+      className += ' opacity-50';
+    }
+  }
+  
+  return (
+    <Button
+      key={i}
+      variant="outline"
+      className={className}
+      onClick={() => handleSelectAnswer(i)}
+      disabled={showExplanation}
+    >
+      <span className="flex items-center gap-3">
+        <span className="h-6 w-6 rounded-full border-2 flex items-center justify-center">
+          {String.fromCharCode(65 + i)}  {/* A, B, C, D */}
+        </span>
+        <span>{option}</span>
+      </span>
+    </Button>
+  );
+})}
+```
+
+### Explanation Card
+
+After answering, an animated explanation appears:
+
+```tsx src/components/lesson/QuizSection.tsx
+<AnimatePresence>
+  {showExplanation && (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`p-4 rounded-lg border ${
+        isCorrect
+          ? 'bg-green-500/5 border-green-500/20'
+          : 'bg-red-500/5 border-red-500/20'
+      }`}
+    >
+      <div className="flex items-start gap-2">
+        {isCorrect ? (
+          <CheckCircle className="h-5 w-5 text-green-500" />
+        ) : (
+          <XCircle className="h-5 w-5 text-red-500" />
+        )}
+        <div>
+          <p className="font-medium">{isCorrect ? 'Correct!' : 'Incorrect'}</p>
+          <p className="text-sm text-muted-foreground">{question.explanation}</p>
+        </div>
+      </div>
+    </motion.div>
+  )}
+</AnimatePresence>
+```
+
+## Scoring
+
+### Score Calculation
+
+```tsx src/components/lesson/QuizSection.tsx
+const totalQuestions = quiz.questions.length;
+const score = Math.round((correctCount / totalQuestions) * 100);
+const passed = score >= quiz.passingScore;
+```
+
+### Results Screen
+
+```tsx src/components/lesson/QuizSection.tsx
+if (finished) {
+  return (
+    <Card className={`border-2 ${
+      passed 
+        ? 'border-green-500/30 bg-green-500/5' 
+        : 'border-red-500/30 bg-red-500/5'
+    }`}>
+      <CardContent className="p-8 text-center space-y-4">
+        {passed ? (
+          <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+        ) : (
+          <XCircle className="h-16 w-16 text-red-500 mx-auto" />
+        )}
+        <h3 className="text-2xl font-bold">
+          {passed ? 'Quiz Passed!' : 'Quiz Not Passed'}
+        </h3>
+        <p className="text-lg">
+          Score: <span className="font-bold">{score}%</span> 
+          ({correctCount}/{totalQuestions} correct)
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Passing score: {quiz.passingScore}%
+        </p>
+        <Button onClick={handleReset}>
+          <RotateCcw className="h-4 w-4 mr-2" />
+          {passed ? 'Retake Quiz' : 'Try Again'}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+## Integration with Progress Tracking
+
+### Storing Quiz Results
+
+```tsx src/pages/LessonView.tsx
+const handleQuizComplete = (score: number, passed: boolean) => {
+  setQuizScore(weekId, lessonId, score, passed);
+  
+  if (passed && !completed) {
+    completeLesson(weekId, lessonId);
+    triggerConfetti();
+    showCelebration(
+      `Quiz passed — "${lesson.title}"`,
+      `Week ${week.number} | Lesson ${lessonIndex + 1}`,
+      totalCompleted,
+      getTotalLessons()
+    );
+  }
+};
+```
+
+### Progress Store
+
+```typescript src/state/bootcampStore.ts
+setQuizScore: (weekId: string, lessonId: string, score: number, passed: boolean) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]?.lessons[lessonId]) {
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        lessons: {
+          ...newProgress[weekId].lessons,
+          [lessonId]: {
+            ...newProgress[weekId].lessons[lessonId],
+            quizScore: score,
+            quizPassed: passed,
+          },
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+```
+
+<Check>
+Quiz scores are persisted to localStorage via Zustand's `persist` middleware.
+</Check>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Question Count" icon="list">
+    **3-5 questions** per quiz is ideal. More than 7 questions feels tedious.
+  </Card>
+  
+  <Card title="Passing Score" icon="target">
+    **70%** is standard. Adjust based on difficulty (60% for hard quizzes, 80% for easy ones).
+  </Card>
+  
+  <Card title="Explanations" icon="message-square">
+    **Always include** clear explanations. They're the most valuable part of the quiz.
+  </Card>
+  
+  <Card title="Retakes" icon="rotate-ccw">
+    **Always allow retakes**. The goal is learning, not gatekeeping.
+  </Card>
+</CardGroup>
+
+## Writing Good Quiz Questions
+
+### Do:
+
+<Check>
+- Test understanding of **concepts**, not memorization
+- Write clear, unambiguous questions
+- Provide **explanatory** feedback, not just "correct/incorrect"
+- Use realistic options (avoid obvious wrong answers)
+- Include "why" in explanations
+</Check>
+
+### Don't:
+
+<Warning>
+- Ask trick questions
+- Use double negatives
+- Make questions depend on previous answers
+- Write explanations that just repeat the question
+- Use "all of the above" or "none of the above" as lazy options
+</Warning>
+
+## Example of a Well-Written Question
+
+```typescript Good Example
+{
+  id: 5,
+  question: 'In FHEVM v0.9+, what is the correct decryption flow?',
+  options: [
+    'Client calls requestDecryption → Oracle decrypts → callback',
+    'Contract calls makePubliclyDecryptable → client calls publicDecrypt off-chain → client submits proof on-chain',
+    'Client decrypts locally without any on-chain interaction',
+    'Contract decrypts automatically when the value is read',
+  ],
+  correctAnswer: 1,
+  explanation: 'In v0.9+, the contract marks values with makePubliclyDecryptable(), the client decrypts off-chain via the Relayer SDK, then submits the cleartext + proof back on-chain for verification with checkSignatures().',
+  category: 'access_control',
+}
+```
+
+**Why this works:**
+- Tests understanding of **architecture** (not just definitions)
+- All options are plausible (require thought)
+- Explanation provides **technical details** and context
+- Answer can be verified by reading the lesson
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Progress Tracking" icon="chart-line" href="./progress-tracking">
+    Learn how quiz scores feed into overall progress analytics
+  </Card>
+  <Card title="Lessons" icon="book" href="./lessons">
+    Return to lesson structure documentation
+  </Card>
+</CardGroup>

@@ -1,0 +1,477 @@
+---
+title: Week 2 - FHEVM Smart Contract Development
+description: Write, test, and deploy confidential smart contracts
+icon: code
+---
+
+# Week 2: FHEVM Smart Contract Development
+
+**Subtitle:** Write, test, and deploy confidential smart contracts
+
+**Estimated Time:** 10 hours of lessons + 5 hours homework
+
+## Objectives
+
+<CardGroup cols={2}>
+  <Card title="First Contract" icon="file-code">
+    Write your first FHEVM smart contract with encrypted state
+  </Card>
+  <Card title="Design Patterns" icon="shapes">
+    Understand FHEVM contract design patterns and best practices
+  </Card>
+  <Card title="Testing" icon="vial">
+    Test contracts using Hardhat with FHEVM mocks
+  </Card>
+  <Card title="Deployment" icon="rocket">
+    Deploy contracts to Sepolia testnet and verify on explorer
+  </Card>
+</CardGroup>
+
+## Milestone
+
+<Check>Deployed and tested EncryptedCounter contract on Sepolia</Check>
+<Check>Passing Hardhat test suite</Check>
+<Check>Understanding of FHEVM contract patterns</Check>
+
+---
+
+## Lessons
+
+### Lesson 2.1: Your First FHEVM Contract
+**Duration:** 60 minutes
+
+<Accordion title="Learning Objectives">
+  - Create a Solidity contract that imports and uses FHE types
+  - Declare encrypted state variables (euint8, euint64)
+  - Implement functions that accept encrypted inputs
+  - Use FHE.fromExternal() to handle client-encrypted data
+  - Apply FHE.allowThis() for decryption permissions
+</Accordion>
+
+<Accordion title="From Plain Counter to Encrypted Counter">
+  **A Plain Solidity Counter (Review)**
+  
+  ```solidity
+  // SPDX-License-Identifier: MIT
+  pragma solidity ^0.8.24;
+  
+  contract Counter {
+      uint8 public count;
+  
+      function increment() external {
+          count += 1;
+      }
+  
+      function getCount() external view returns (uint8) {
+          return count;
+      }
+  }
+  ```
+  
+  <Info>
+    Notice: `count` is **public** — anyone can read it on-chain. What if the count itself is sensitive?
+  </Info>
+  
+  **Converting to an Encrypted Counter**
+  
+  ```solidity
+  // SPDX-License-Identifier: BSD-3-Clause-Clear
+  pragma solidity ^0.8.24;
+  
+  import { FHE, euint32, externalEuint32 } from "@fhevm/solidity/lib/FHE.sol";
+  import { ZamaEthereumConfig } from "@fhevm/solidity/config/ZamaConfig.sol";
+  
+  contract EncryptedCounter is ZamaEthereumConfig {
+      euint32 private counter;  // Encrypted! No one can read this directly.
+      uint32 public revealedCount;
+      bool public isRevealed;
+      bool public revealRequested;
+  
+      event CounterIncremented(address indexed by);
+      event RevealRequested(bytes32 counterHandle);
+  
+      constructor() {
+          counter = FHE.asEuint32(0);  // Initialize with encrypted zero
+          FHE.allowThis(counter);       // Allow contract to work with it
+      }
+  
+      function increment(
+          externalEuint32 encryptedAmount,
+          bytes calldata proof
+      ) external {
+          // Convert external encrypted input to internal type
+          euint32 amount = FHE.fromExternal(encryptedAmount, proof);
+  
+          // Homomorphic addition - no decryption needed!
+          counter = FHE.add(counter, amount);
+  
+          // Update permission for the new ciphertext
+          FHE.allowThis(counter);
+  
+          isRevealed = false;
+          revealRequested = false;
+          emit CounterIncremented(msg.sender);
+      }
+  
+      // v0.9+: Mark counter as publicly decryptable
+      function requestReveal() external {
+          require(!revealRequested, "Already requested");
+          revealRequested = true;
+          counter = FHE.makePubliclyDecryptable(counter);
+          bytes32 handle = FHE.toBytes32(counter);
+          emit RevealRequested(handle);
+      }
+  
+      // v0.9+: Client submits decrypted value + proof
+      function resolveReveal(
+          bytes memory cleartexts,
+          bytes memory decryptionProof
+      ) external {
+          require(revealRequested, "Reveal not requested");
+          bytes32[] memory handlesList = new bytes32[](1);
+          handlesList[0] = FHE.toBytes32(counter);
+          FHE.checkSignatures(handlesList, cleartexts, decryptionProof);
+          revealedCount = abi.decode(cleartexts, (uint32));
+          isRevealed = true;
+      }
+  }
+  ```
+</Accordion>
+
+<Accordion title="Key Differences: Plain vs Encrypted">
+  <Steps>
+    <Step title="State Visibility">
+      `uint8 public count` → `euint32 private counter`
+      
+      The encrypted version cannot be read by anyone on-chain.
+    </Step>
+    
+    <Step title="Input Handling">
+      Instead of plain uint8 parameters, we accept `externalEuint32 + proof bytes`
+      
+      The client encrypts values before sending.
+    </Step>
+    
+    <Step title="Operations">
+      `count += 1` → `FHE.add(counter, amount)`
+      
+      Same logic, but operating on ciphertexts.
+    </Step>
+    
+    <Step title="Permissions">
+      After each mutation, call `FHE.allowThis(counter)`
+      
+      So the contract can later request decryption.
+    </Step>
+    
+    <Step title="Reading Values">
+      Instead of a simple getter, use v0.9+ self-relaying flow:
+      
+      `makePubliclyDecryptable` → off-chain `publicDecrypt` → submit proof on-chain with `checkSignatures()`
+    </Step>
+  </Steps>
+</Accordion>
+
+<Accordion title="Walking Through the Contract">
+  **Imports**
+  
+  The `FHE` library contains all encrypted operations. `euint32` is a 32-bit encrypted integer (stored as a bytes32 handle on-chain). `externalEuint32` is for client-supplied encrypted data.
+  
+  **Constructor**
+  
+  We initialize with `FHE.asEuint32(0)` and `FHE.allowThis(counter)` so the contract can use that value later.
+  
+  **increment() — Three Steps**
+  
+  1. Turn the client's encrypted input into something the contract can use: `FHE.fromExternal(encryptedAmount, proof)`
+  2. Add it to the counter: `FHE.add(counter, amount)` — returns a **new** handle
+  3. Call `FHE.allowThis(counter)` on the new value
+  
+  <Warning>
+    If you skip step 3, the next call will fail because the new handle has no permissions!
+  </Warning>
+  
+  **requestReveal() and resolveReveal()**
+  
+  These implement the v0.9+ self-relaying pattern:
+  - `requestReveal()` makes the counter eligible for public decryption
+  - Frontend calls `publicDecrypt()` in the Relayer SDK
+  - `resolveReveal()` verifies the proof and stores the plaintext result
+</Accordion>
+
+<Accordion title="Common Pitfalls to Avoid">
+  <Warning>
+    **Skipping allowThis after an FHE op**
+    
+    Any time you create or overwrite an encrypted value, you need `FHE.allowThis()` on that new value.
+  </Warning>
+  
+  <Warning>
+    **Using external types without verifying**
+    
+    Values from the client aren't trusted until you run them through `FHE.fromExternal(handle, proof)`.
+  </Warning>
+  
+  <Warning>
+    **Assuming getters return numbers**
+    
+    A function that returns euint32 returns a handle, not plaintext. The client must decrypt off-chain.
+  </Warning>
+  
+  <Warning>
+    **Revealing out of order**
+    
+    For v0.9 you must call `requestReveal` first, then the client decrypts and calls `resolveReveal`.
+  </Warning>
+</Accordion>
+
+---
+
+### Lesson 2.2: Contract Patterns & Architecture
+**Duration:** 45 minutes
+
+<Accordion title="Learning Objectives">
+  - Analyze the SimpleVoting.sol contract line by line
+  - Identify the session-based pattern for managing FHE state
+  - Understand the encrypted input → compute → controlled decrypt lifecycle
+  - Learn best practices for FHEVM contract architecture
+</Accordion>
+
+<Accordion title="SimpleVoting Contract Architecture">
+  ```solidity
+  contract SimpleVoting_uint32 is ZamaEthereumConfig {
+      struct Session {
+          address creator;
+          uint256 endTime;
+          euint32 yesVotes;    // Encrypted tally
+          euint32 noVotes;     // Encrypted tally
+          bool resolved;
+          uint32 revealedYes;
+          uint32 revealedNo;
+          bool revealRequested;
+      }
+  
+      Session[] public sessions;
+      mapping(uint256 => mapping(address => bool)) public hasVoted;
+  
+      function createSession(uint256 durationSeconds) external {
+          // Creates a new voting session with encrypted zero tallies
+      }
+  
+      function vote(
+          uint256 sessionId,
+          externalEuint32 encryptedVote,
+          bytes calldata proof
+      ) external {
+          // Casts an encrypted vote and updates tallies homomorphically
+      }
+  
+      function requestTallyReveal(uint256 sessionId) external {
+          // v0.9+: Calls makePubliclyDecryptable and emits handles
+      }
+  
+      function resolveTallyCallback(
+          uint256 sessionId,
+          bytes memory cleartexts,
+          bytes memory decryptionProof
+      ) external {
+          // v0.9+: Verifies proof and stores revealed results
+      }
+  }
+  ```
+</Accordion>
+
+<Accordion title="FHEVM Design Patterns">
+  <CardGroup cols={2}>
+    <Card title="Pattern 1: Session-Based State" icon="calendar">
+      Group related encrypted values into structs with lifecycle (create → interact → resolve)
+    </Card>
+    
+    <Card title="Pattern 2: Encrypted Accumulator" icon="plus">
+      Use FHE.add() to build running totals without revealing individual contributions
+    </Card>
+    
+    <Card title="Pattern 3: FHE.select for Conditionals" icon="code-branch">
+      Replace if/else on encrypted conditions with select() to choose between encrypted values
+    </Card>
+    
+    <Card title="Pattern 4: Self-Relaying Reveal (v0.9+)" icon="arrows-rotate">
+      makePubliclyDecryptable → client decrypts off-chain → submit proof → checkSignatures
+    </Card>
+    
+    <Card title="Pattern 5: Access-Controlled Decryption" icon="lock">
+      Use require(msg.sender == owner) before allowing decryption requests
+    </Card>
+  </CardGroup>
+  
+  **Best Practices**
+  
+  <Check>Always initialize encrypted state with FHE.asEuintX(0)</Check>
+  <Check>Call FHE.allowThis() after every encrypted state mutation</Check>
+  <Check>Use events to track encrypted operations (events are public)</Check>
+  <Check>Keep decryption requests gated behind access control</Check>
+</Accordion>
+
+---
+
+### Lesson 2.3: Testing & Deployment
+**Duration:** 50 minutes
+
+<Accordion title="Learning Objectives">
+  - Write Hardhat tests for FHEVM contracts using mock mode
+  - Understand the test lifecycle for encrypted operations
+  - Deploy an EncryptedCounter to Sepolia testnet
+  - Verify deployment and interact with the contract on-chain
+</Accordion>
+
+<Accordion title="Testing FHEVM Contracts with Hardhat">
+  **Mock Mode**
+  
+  FHEVM contracts can be tested locally using mock mode, which simulates FHE operations without actual encryption. This is much faster than testing on a live network.
+  
+  ```typescript
+  import { expect } from "chai";
+  import { ethers } from "hardhat";
+  
+  describe("EncryptedCounter", function () {
+    let counter: any;
+    let owner: any;
+  
+    beforeEach(async function () {
+      [owner] = await ethers.getSigners();
+      const Counter = await ethers.getContractFactory("EncryptedCounter");
+      counter = await Counter.deploy();
+      await counter.waitForDeployment();
+    });
+  
+    it("should deploy with initial count of 0", async function () {
+      const tx = await counter.requestReveal();
+      await tx.wait();
+      
+      // In mock mode, simulate the self-relaying callback
+      const cleartexts = ethers.AbiCoder.defaultAbiCoder().encode(["uint32"], [0]);
+      const proof = "0x"; // Mock proof
+      
+      await counter.resolveReveal(cleartexts, proof);
+      expect(await counter.revealedCount()).to.equal(0);
+      expect(await counter.isRevealed()).to.equal(true);
+    });
+  
+    it("should increment the counter", async function () {
+      // In mock mode, encrypt a value of 1
+      const encryptedAmount = ethers.zeroPadValue("0x01", 32);
+      const proof = "0x";
+  
+      await counter.increment(encryptedAmount, proof);
+  
+      // Request reveal and simulate off-chain decrypt
+      await (await counter.requestReveal()).wait();
+      const cleartexts = ethers.AbiCoder.defaultAbiCoder().encode(["uint32"], [1]);
+      await counter.resolveReveal(cleartexts, "0x");
+      
+      expect(await counter.revealedCount()).to.equal(1);
+    });
+  });
+  ```
+</Accordion>
+
+<Accordion title="Deploying to Sepolia">
+  **Deployment Script**
+  
+  ```typescript
+  // scripts/deploy.ts
+  import { ethers } from "hardhat";
+  
+  async function main() {
+    console.log("Deploying EncryptedCounter...");
+  
+    const Counter = await ethers.getContractFactory("EncryptedCounter");
+    const counter = await Counter.deploy();
+    await counter.waitForDeployment();
+  
+    const address = await counter.getAddress();
+    console.log("EncryptedCounter deployed to:", address);
+  
+    console.log("Verify with:");
+    console.log(`npx hardhat verify --network sepolia ${address}`);
+  }
+  
+  main().catch(console.error);
+  ```
+  
+  **Deploy to Sepolia**
+  
+  ```bash
+  npx hardhat run scripts/deploy.ts --network sepolia
+  ```
+  
+  <Info>
+    Make sure your wallet has Sepolia ETH before deploying. Get test ETH from [Sepolia Faucet](https://sepoliafaucet.com).
+  </Info>
+</Accordion>
+
+---
+
+## Homework: Build a Confidential Counter
+
+**Estimated Time:** 5 hours
+
+**Objective:** Build, test, and deploy a fully functional EncryptedCounter contract with increment, decrement, and reset capabilities.
+
+### Requirements
+
+<AccordionGroup>
+  <Accordion title="1. EncryptedCounter Contract (30%)">
+    Write an `EncryptedCounter.sol` (v0.9+) with:
+    - `increment(euint32)` with encrypted input
+    - `decrement(euint32)` with underflow protection using FHE.select()
+    - `reset()` function
+    - `requestReveal()` using makePubliclyDecryptable
+    - `resolveReveal()` with checkSignatures
+  </Accordion>
+  
+  <Accordion title="2. Hardhat Tests (30%)">
+    Write at least 3 tests:
+    1. Initial count is 0
+    2. Increment works correctly
+    3. Decrement does not underflow below 0
+  </Accordion>
+  
+  <Accordion title="3. Sepolia Deployment (20%)">
+    Deploy your contract to Sepolia testnet and submit:
+    - Contract address
+    - Transaction hash
+  </Accordion>
+  
+  <Accordion title="4. Design Writeup (20%)">
+    Write a short (200-word) explanation of:
+    - Your contract design decisions
+    - Any challenges you faced
+    - How you handled underflow protection
+  </Accordion>
+</AccordionGroup>
+
+### Submission
+
+<Steps>
+  <Step title="Create folder">
+    Create `homework-2-[yourname]` folder
+  </Step>
+  <Step title="Include files">
+    - `contracts/EncryptedCounter.sol`
+    - `test/EncryptedCounter.test.ts`
+    - `deployment.md` with contract address and TX hash
+    - `writeup.md` with design explanation
+  </Step>
+  <Step title="Submit">
+    Zip and submit — [Submission portal coming soon]
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+<Card title="Continue to Week 3" icon="arrow-right" href="/curriculum/week-3">
+  Now that you can write and test FHEVM contracts, move on to Week 3 to build a full-stack confidential dApp with React frontend integration.
+</Card>

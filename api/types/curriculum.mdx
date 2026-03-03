@@ -1,0 +1,160 @@
+---
+title: 'Curriculum'
+description: 'Top-level curriculum structure with weeks and global metadata'
+icon: 'book'
+---
+
+## Overview
+
+The curriculum structure defines the complete bootcamp learning path, including weeks, target audience, and prerequisites.
+
+## Types
+
+### Curriculum
+
+The top-level curriculum object containing all bootcamp content.
+
+<ResponseField name="title" type="string" required>
+  The curriculum title (e.g., "FHEVM Developer Bootcamp")
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  A comprehensive description of what the bootcamp covers
+</ResponseField>
+
+<ResponseField name="targetAudience" type="string[]" required>
+  Array of strings describing the intended learners
+  
+  **Example:**
+  ```typescript
+  [
+    "Web3 developers with basic Ethereum and Solidity knowledge",
+    "Smart contract developers looking to add privacy-preserving capabilities"
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="prerequisites" type="string[]" required>
+  Array of required knowledge or skills before starting
+  
+  **Example:**
+  ```typescript
+  [
+    "Basic understanding of Ethereum and smart contracts",
+    "Familiarity with Solidity syntax"
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="weeks" type="Week[]" required>
+  Array of week objects containing all lesson content
+</ResponseField>
+
+---
+
+### Week
+
+Represents a single week of curriculum content.
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the week (e.g., "week-1", "week-2")
+</ResponseField>
+
+<ResponseField name="number" type="number" required>
+  Week number (1-indexed)
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Week title describing the main theme
+  
+  **Example:** "Foundations of Confidential Computing"
+</ResponseField>
+
+<ResponseField name="subtitle" type="string" required>
+  Brief summary of week objectives
+  
+  **Example:** "Understand FHE, set up tooling, grasp FHEVM architecture"
+</ResponseField>
+
+<ResponseField name="objectives" type="string[]" required>
+  Array of learning objectives for the week
+  
+  **Example:**
+  ```typescript
+  [
+    "Understand what Fully Homomorphic Encryption (FHE) is",
+    "Set up a complete FHEVM development environment"
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="lessons" type="Lesson[]" required>
+  Array of lesson objects for this week
+</ResponseField>
+
+<ResponseField name="homework" type="Homework" required>
+  Homework assignment for the week
+</ResponseField>
+
+<ResponseField name="milestone" type="string" required>
+  Expected achievement by the end of the week
+  
+  **Example:** "Working dev environment with wallet connected to Sepolia"
+</ResponseField>
+
+<ResponseField name="estimatedHours" type="number" required>
+  Estimated time commitment in hours
+</ResponseField>
+
+---
+
+## Type Definition
+
+```typescript
+export interface Curriculum {
+  title: string;
+  description: string;
+  targetAudience: string[];
+  prerequisites: string[];
+  weeks: Week[];
+}
+
+export interface Week {
+  id: string;
+  number: number;
+  title: string;
+  subtitle: string;
+  objectives: string[];
+  lessons: Lesson[];
+  homework: Homework;
+  milestone: string;
+  estimatedHours: number;
+}
+```
+
+## Usage Example
+
+```typescript
+import { curriculum } from '@/data/curriculum';
+
+// Access curriculum metadata
+const bootcampTitle = curriculum.title;
+const targetAudience = curriculum.targetAudience;
+
+// Access first week
+const firstWeek = curriculum.weeks[0];
+console.log(firstWeek.title); // "Foundations of Confidential Computing"
+console.log(firstWeek.estimatedHours); // 8
+
+// Iterate through all weeks
+curriculum.weeks.forEach((week) => {
+  console.log(`Week ${week.number}: ${week.title}`);
+  console.log(`Milestone: ${week.milestone}`);
+});
+```
+
+## Related Types
+
+- [Lesson](/api/types/lesson) - Individual lesson structure
+- [Homework](/api/types/homework) - Weekly homework assignments
+- [Quiz](/api/types/quiz) - Lesson quiz questions

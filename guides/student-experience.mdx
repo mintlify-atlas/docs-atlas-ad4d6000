@@ -1,0 +1,673 @@
+---
+title: 'Student Experience Guide'
+description: 'Understand the student journey through the FHEVM Bootcamp'
+icon: 'graduation-cap'
+---
+
+This guide explains the student experience throughout the FHEVM Developer Bootcamp, helping instructors and administrators understand the learner's perspective.
+
+## Overview
+
+The bootcamp takes students from FHE fundamentals to building production-ready confidential smart contracts in 4 weeks.
+
+<CardGroup cols={3}>
+  <Card title="12 Lessons" icon="book">
+    Structured curriculum with clear learning objectives
+  </Card>
+  <Card title="4 Homework" icon="code">
+    Hands-on assignments with grading rubrics
+  </Card>
+  <Card title="1 Capstone" icon="trophy">
+    Final project showcasing skills learned
+  </Card>
+</CardGroup>
+
+## Learning Journey
+
+### Week 1: Foundations (8 hours)
+
+<Steps>
+  <Step title="Lesson 1.1: Welcome to FHEVM (30 min)">
+    **What Students Learn**:
+    - What Fully Homomorphic Encryption is
+    - Why privacy matters on blockchain
+    - Real-world use cases (voting, auctions, DeFi)
+    - The Zama Protocol architecture
+
+    **Activities**:
+    - Watch intro video
+    - Explore interactive slides carousel
+    - Complete knowledge check quiz (5 questions)
+
+    **Student Perspective**:
+    > "I finally understand why we need FHE! The HTTPS analogy really clicked for me - HTTPS encrypts in transit, FHE encrypts in compute."
+  </Step>
+
+  <Step title="Lesson 1.2: Environment Setup (45 min)">
+    **What Students Do**:
+    - Install Node.js, npm, and Hardhat
+    - Set up MetaMask wallet
+    - Configure Sepolia testnet
+    - Get test ETH from faucet
+    - Clone starter repository
+
+    **Deliverables**:
+    - Screenshot of successful Hardhat installation
+    - MetaMask connected to Sepolia
+    - Test transaction on block explorer
+
+    **Common Challenges**:
+    - Node version too old → Use nvm to upgrade
+    - Faucet not working → Try alternative faucets
+    - MetaMask network not saving → Check chain ID
+  </Step>
+
+  <Step title="Lesson 1.3: FHE Deep Dive (90 min)">
+    **What Students Learn**:
+    - TFHE library operations (add, mul, sub, eq, etc.)
+    - Encrypted types (euint8, euint16, euint32, euint64, ebool)
+    - Ciphertext vs plaintext operations
+    - The coprocessor model
+
+    **Interactive Components**:
+    - FHE Basics Tabs (try operations live)
+    - Mermaid diagrams showing data flow
+    - Code examples with syntax highlighting
+
+    **Quiz**: 8 questions on FHE concepts (70% to pass)
+
+    **Student Perspective**:
+    > "The interactive FHE operations demo was super helpful. I could see exactly how encrypted addition works without seeing the actual values!"
+  </Step>
+
+  <Step title="Homework 1: FHE Concepts (3-5 hours)">
+    **Assignment**:
+    - Written explanation of FHE vs traditional encryption
+    - Diagram showing FHEVM data flow
+    - Environment verification checklist
+    - Reflection on 3 potential use cases
+
+    **Grading Criteria**:
+    - Understanding (40%): Demonstrates grasp of FHE
+    - Technical accuracy (30%): Correct terminology and concepts
+    - Creativity (30%): Thoughtful use case analysis
+
+    **Submission**: Via GitHub repo or LMS
+
+    **Student Perspective**:
+    > "Drawing the data flow diagram really solidified my understanding. Now I get how the coprocessor handles encrypted operations!"
+  </Step>
+</Steps>
+
+### Week 2: Smart Contracts (10 hours)
+
+<Steps>
+  <Step title="Lesson 2.1: Your First FHEVM Contract (60 min)">
+    **What Students Build**:
+    - A simple confidential counter
+    - Encrypted state variables
+    - TFHE operations (add, decrypt)
+    - Permission management
+
+    **Code Walkthrough**:
+    ```solidity
+    // Students write this step-by-step
+    contract ConfidentialCounter {
+        euint32 private counter;
+        
+        function increment(bytes calldata encryptedAmount) public {
+            euint32 amount = TFHE.asEuint32(encryptedAmount);
+            counter = TFHE.add(counter, amount);
+        }
+        
+        function getCounter() public view returns (bytes memory) {
+            return TFHE.reencrypt(counter, msg.sender);
+        }
+    }
+    ```
+
+    **Interactive Demo**:
+    - Contract Explorer component (deployed contract)
+    - Students interact with live contract
+    - See encrypted values on block explorer
+
+    **Student Perspective**:
+    > "It's wild seeing my contract on Sepolia with encrypted values! The block explorer shows gibberish for the counter, but I can decrypt it in my app."
+  </Step>
+
+  <Step title="Lesson 2.2: Contract Patterns (75 min)">
+    **Patterns Covered**:
+    - Access control with encrypted data
+    - Batch operations on encrypted arrays
+    - Encrypted comparisons and conditionals
+    - Gas optimization techniques
+
+    **Code Examples**:
+    - Private token balances
+    - Confidential voting
+    - Encrypted auctions
+    - Secret values in games
+
+    **Group Activity**:
+    - Code review of sample contracts
+    - Identify security issues
+    - Discuss trade-offs
+  </Step>
+
+  <Step title="Lesson 2.3: Testing & Deployment (60 min)">
+    **What Students Learn**:
+    - Writing Hardhat tests for encrypted contracts
+    - Mocking FHE operations in tests
+    - Deploying to Sepolia testnet
+    - Verifying contracts on Etherscan
+
+    **Hands-On**:
+    - Write 5+ test cases
+    - Deploy their counter contract
+    - Share contract address with class
+
+    **Student Perspective**:
+    > "Testing encrypted functions is tricky! I learned to use the mock FHE library for fast local tests, then verify on testnet."
+  </Step>
+
+  <Step title="Homework 2: Build a Confidential Counter (8-10 hours)">
+    **Requirements**:
+    1. Smart contract with encrypted counter
+    2. Functions: increment, decrement, reset, getValue
+    3. Access control (only owner can reset)
+    4. Full test suite (10+ tests)
+    5. Deployed to Sepolia
+    6. README with contract address and instructions
+
+    **Starter Code**: Provided template
+    **Solution Code**: Released after deadline
+
+    **Grading**:
+    - Functionality (50%): All features work
+    - Code quality (30%): Clean, readable code
+    - Documentation (20%): Clear README and comments
+
+    **Student Perspective**:
+    > "This took me longer than expected, but I'm proud of the result! My tests caught several bugs before deployment."
+  </Step>
+</Steps>
+
+### Week 3: Full-Stack dApps (12 hours)
+
+<Steps>
+  <Step title="Lesson 3.1: Frontend Integration (90 min)">
+    **What Students Learn**:
+    - fhevmjs library for encryption/decryption
+    - Connecting frontend to FHEVM contracts
+    - Wagmi hooks for blockchain interaction
+    - Handling encrypted inputs and outputs
+
+    **Tech Stack**:
+    - React + TypeScript
+    - fhevmjs for FHE operations
+    - wagmi + RainbowKit for wallet
+    - ethers.js for contract calls
+
+    **Build Together**:
+    ```typescript
+    // Students code this live
+    import { initFhevm, encrypt } from 'fhevmjs';
+    
+    async function incrementCounter(amount: number) {
+      const instance = await initFhevm();
+      const encryptedAmount = await encrypt(amount, instance);
+      const tx = await contract.increment(encryptedAmount);
+      await tx.wait();
+    }
+    ```
+  </Step>
+
+  <Step title="Lesson 3.2: Private Voting dApp (120 min)">
+    **Full-Stack Project**:
+    - Smart contract for encrypted votes
+    - React frontend with voting UI
+    - Real-time results (encrypted until reveal)
+    - Admin dashboard for proposal creation
+
+    **Features Students Build**:
+    - Create voting proposals
+    - Cast encrypted votes
+    - View encrypted tallies
+    - Reveal results after voting ends
+
+    **Interactive Component**:
+    - VotingSimulator (try before building)
+    - See how encrypted voting works
+
+    **Student Perspective**:
+    > "This is the coolest thing I've built! Votes are completely private until the admin reveals them. Perfect for real governance."
+  </Step>
+
+  <Step title="Lesson 3.3: Advanced Patterns (75 min)">
+    **Topics**:
+    - Encrypted state management
+    - Error handling with encrypted data
+    - Gas optimization strategies
+    - Multi-user permissions
+
+    **Case Studies**:
+    - Real production dApps using FHEVM
+    - Architecture decisions
+    - Performance considerations
+  </Step>
+
+  <Step title="Homework 3: Build a Private Voting dApp (10-12 hours)">
+    **Requirements**:
+    1. Smart contract with encrypted voting
+    2. React frontend (connect wallet, vote, view results)
+    3. Admin functions (create proposal, reveal results)
+    4. Tests for contract and frontend
+    5. Deployed to Sepolia with live frontend
+
+    **Deliverables**:
+    - GitHub repo with code
+    - Deployed contract address
+    - Live frontend URL (Netlify/Vercel)
+    - Demo video (3-5 min)
+
+    **Grading**:
+    - Functionality (50%): Full voting flow works
+    - UX Design (20%): Intuitive interface
+    - Code quality (20%): Well-structured code
+    - Documentation (10%): Clear README
+  </Step>
+</Steps>
+
+### Week 4: Production & Capstone (15 hours)
+
+<Steps>
+  <Step title="Lesson 4.1: Advanced Applications (60 min)">
+    **Use Cases Deep Dive**:
+    - Private DeFi (encrypted balances, hidden orders)
+    - Confidential gaming (hidden stats, secret moves)
+    - Sealed-bid auctions (encrypted bids)
+    - Private identity (selective disclosure)
+
+    **Guest Speaker** (Optional):
+    - Zama engineer or dApp developer
+    - Real-world implementation stories
+  </Step>
+
+  <Step title="Lesson 4.2: Gas Optimization & Contract Deep Dive (90 min)">
+    **What Students Learn**:
+    - Gas costs of FHE operations
+    - Optimization techniques (batch operations, type selection)
+    - Profiling and measurement
+    - Trade-offs (security vs cost)
+
+    **Workshop**:
+    - Optimize a gas-heavy contract
+    - Measure before/after gas usage
+    - Class competition for best optimization
+  </Step>
+
+  <Step title="Lesson 4.3: Production Deployment & Security (60 min)">
+    **Checklist for Production**:
+    - Security audit considerations
+    - Testnet → mainnet migration
+    - Key management best practices
+    - Monitoring and error tracking
+
+    **Security Topics**:
+    - Common FHEVM vulnerabilities
+    - Access control patterns
+    - Permission management
+    - Upgradeability considerations
+  </Step>
+
+  <Step title="Capstone Project (15 hours)">
+    **Build Your Own Confidential dApp**:
+
+    Students choose from:
+    - Private prediction market
+    - Confidential token with hidden balances
+    - Encrypted auction platform
+    - Private leaderboard/ranking system
+    - Secret game mechanics
+    - Or propose custom idea (requires approval)
+
+    **Requirements**:
+    1. Smart contract using 2+ FHEVM concepts
+    2. Full-stack frontend
+    3. Comprehensive tests
+    4. Deployed to testnet
+    5. Documentation (README, architecture diagram)
+    6. 5-minute presentation
+
+    **Timeline**:
+    - Monday: Contract development
+    - Tuesday: Testing and refinement
+    - Wednesday: Frontend development
+    - Thursday: Integration and debugging
+    - Friday: Presentation prep and demo
+
+    **Grading**:
+    - Working demo (40%): Functionality
+    - Code quality (30%): Clean, maintainable code
+    - Presentation (20%): Clear communication
+    - Creativity (10%): Novel use case or approach
+
+    **Student Perspective**:
+    > "Building my own project from scratch was challenging but incredibly rewarding. I created a private prediction market where bets stay hidden until the event resolves!"
+  </Step>
+</Steps>
+
+## Platform Features (Student View)
+
+### Navigation
+
+<Tabs>
+  <Tab title="Dashboard">
+    **What Students See**:
+    - Welcome message
+    - Overall progress (X% complete)
+    - Current week highlighted
+    - Quick links to next lesson
+    - Upcoming homework deadlines
+
+    **Actions**:
+    - Click week to see lessons
+    - Resume where they left off
+    - View progress analytics
+  </Tab>
+
+  <Tab title="Week Overview">
+    **For Each Week**:
+    - Learning objectives
+    - Estimated time commitment
+    - Lesson list with completion status
+    - Homework assignment (locked until lessons complete)
+    - Milestone description
+
+    **Visual Indicators**:
+    - ✅ Completed lessons (green checkmark)
+    - 🔒 Locked lessons (in cohort mode)
+    - ⏱️ Time estimates
+  </Tab>
+
+  <Tab title="Lesson View">
+    **Lesson Structure**:
+    1. Learning objectives (what you'll learn)
+    2. Content sections (text, code, video, diagrams)
+    3. Interactive components (try it yourself)
+    4. Key points summary
+    5. Quiz (test your knowledge)
+
+    **Features**:
+    - Copy code snippets
+    - Download code files
+    - Embedded YouTube videos
+    - Mermaid diagrams
+    - Syntax-highlighted code
+  </Tab>
+
+  <Tab title="Homework Page">
+    **What Students See**:
+    - Assignment description
+    - Requirements checklist
+    - Grading rubric (clear expectations)
+    - Starter code (download)
+    - Solution code (after deadline)
+    - Submission instructions
+
+    **Interactive Checklist**:
+    - Check off requirements as completed
+    - Progress saved locally
+    - Visual progress bar
+  </Tab>
+</Tabs>
+
+### Progress Tracking
+
+<Steps>
+  <Step title="Automatic Progress Saving">
+    The platform automatically tracks:
+    - Lessons completed
+    - Quiz scores
+    - Time spent per lesson
+    - Homework checklist items
+
+    All stored in browser localStorage (persists across sessions).
+  </Step>
+
+  <Step title="Progress Page">
+    Students can view:
+    - Overall completion percentage
+    - Per-week breakdown
+    - Per-lesson time spent
+    - Quiz scores and pass/fail status
+    - Homework submission status
+
+    **Charts**:
+    - Bar chart of weekly progress
+    - Pie chart of overall completion
+    - Time tracking visualization
+  </Step>
+
+  <Step title="Celebration Moments">
+    The platform celebrates achievements:
+    - ✨ Confetti when completing a lesson
+    - 🎉 Modal when completing a week
+    - 🏆 Badge when finishing bootcamp
+
+    Positive reinforcement keeps students motivated!
+  </Step>
+</Steps>
+
+### Learning Modes
+
+<Tabs>
+  <Tab title="Self-Paced Mode">
+    **For Independent Learners**:
+    - All content unlocked immediately
+    - Progress at your own speed
+    - No deadlines (recommended timeline provided)
+    - Great for asynchronous learning
+
+    **Student Perspective**:
+    > "I'm working full-time, so self-paced mode is perfect. I do lessons on weekends and evenings at my own pace."
+  </Tab>
+
+  <Tab title="Cohort Mode">
+    **For Structured Learning**:
+    - Sequential progression (must complete previous lesson)
+    - Locked content until prerequisites met
+    - Homework deadlines
+    - Synchronous with instructor-led sessions
+
+    **Student Perspective**:
+    > "Cohort mode keeps me accountable. I can't skip ahead, so I make sure I really understand each lesson before moving on."
+  </Tab>
+</Tabs>
+
+### Accessibility Features
+
+<CardGroup cols={2}>
+  <Card title="Dark Mode" icon="moon">
+    Toggle in AppBar for comfortable reading at any time of day.
+  </Card>
+
+  <Card title="Responsive Design" icon="mobile">
+    Works on desktop, tablet, and mobile devices.
+  </Card>
+
+  <Card title="Copy Code" icon="copy">
+    One-click copy for all code snippets - paste directly into editor.
+  </Card>
+
+  <Card title="Download Files" icon="download">
+    Download starter code, solutions, and resources.
+  </Card>
+</CardGroup>
+
+## Student Success Tips
+
+<AccordionGroup>
+  <Accordion title="Stay Consistent">
+    - Set a regular study schedule (3-4 sessions/week)
+    - Don't try to cram everything into one day
+    - Review previous lessons before moving forward
+  </Accordion>
+
+  <Accordion title="Practice Hands-On">
+    - Don't just read - code along!
+    - Try modifying examples to see what happens
+    - Build extra projects beyond homework
+    - Experiment with different FHEVM patterns
+  </Accordion>
+
+  <Accordion title="Ask Questions">
+    - No question is too basic
+    - Use Discord/Slack for help
+    - Attend office hours
+    - Help other students (teaching solidifies learning)
+  </Accordion>
+
+  <Accordion title="Build a Portfolio">
+    - Keep all projects in GitHub
+    - Write READMEs for each project
+    - Share on Twitter/LinkedIn
+    - Add to your developer portfolio
+  </Accordion>
+
+  <Accordion title="Join the Community">
+    - Connect with other students
+    - Form study groups
+    - Attend Zama events
+    - Contribute to open source FHEVM projects
+  </Accordion>
+</AccordionGroup>
+
+## Common Student Challenges
+
+<AccordionGroup>
+  <Accordion title="Cryptography Feels Overwhelming">
+    **Solution**: You don't need to understand the deep math! Focus on:
+    - **What** FHE does (compute on encrypted data)
+    - **When** to use it (privacy-preserving apps)
+    - **How** to use the TFHE library (practical API)
+
+    The Zama library abstracts the complexity.
+  </Accordion>
+
+  <Accordion title="Gas Costs Are High">
+    **Solution**: FHE operations are expensive, but:
+    - Use the smallest encrypted type needed (euint8 < euint256)
+    - Batch operations when possible
+    - Optimize hot paths
+    - As FHE improves, costs will decrease
+
+    See Lesson 4.2 for optimization techniques.
+  </Accordion>
+
+  <Accordion title="Debugging Encrypted Values">
+    **Solution**: Debugging is harder with encryption:
+    - Use extensive logging of non-sensitive data
+    - Write comprehensive tests with known inputs
+    - Decrypt intermediate values in test environment
+    - Use the mock FHE library for faster iteration
+  </Accordion>
+
+  <Accordion title="Frontend Integration Is Tricky">
+    **Solution**: fhevmjs requires some setup:
+    - Follow Lesson 3.1 step-by-step
+    - Use the provided code templates
+    - Check the fhevmjs documentation
+    - Ask for help in Discord #frontend channel
+  </Accordion>
+</AccordionGroup>
+
+## Post-Bootcamp Pathways
+
+After completing the bootcamp, students can:
+
+<CardGroup cols={2}>
+  <Card title="Build Production Apps" icon="rocket">
+    - Deploy to mainnet (when available)
+    - Launch your confidential dApp
+    - Apply for Zama grants
+    - Join a hackathon
+  </Card>
+
+  <Card title="Contribute to Ecosystem" icon="code">
+    - Contribute to Zama repos
+    - Build FHEVM tooling
+    - Write tutorials/guides
+    - Speak at conferences
+  </Card>
+
+  <Card title="Find Opportunities" icon="briefcase">
+    - Apply to crypto companies
+    - Freelance as FHEVM expert
+    - Join Zama team
+    - Start your own venture
+  </Card>
+
+  <Card title="Keep Learning" icon="book">
+    - Advanced cryptography courses
+    - Zama research papers
+    - Community workshops
+    - Advanced FHEVM patterns
+  </Card>
+</CardGroup>
+
+## Student Testimonials
+
+<Note>
+These are example testimonials based on the curriculum structure:
+
+> "This bootcamp transformed my understanding of blockchain privacy. I went from knowing nothing about FHE to deploying a production-ready private voting dApp in 4 weeks!" - Alex, Smart Contract Developer
+
+> "The hands-on approach was perfect. Every lesson had code examples I could run immediately, and the homework reinforced the concepts." - Sarah, Full-Stack Developer
+
+> "Instructor mode was invaluable. The teaching notes helped me understand not just *what* to do, but *why* certain patterns are better." - Mike, Bootcamp Instructor
+
+> "I loved the self-paced mode. I could go through lessons on my own schedule while working full-time, and the progress tracking kept me motivated." - Emma, Part-Time Student
+</Note>
+
+## Resources for Students
+
+<CardGroup cols={2}>
+  <Card title="Zama Docs" icon="book" href="https://docs.zama.ai/fhevm">
+    Official FHEVM documentation
+  </Card>
+
+  <Card title="GitHub Examples" icon="code" href="https://github.com/zama-ai/fhevm">
+    Sample contracts and implementations
+  </Card>
+
+  <Card title="Discord Community" icon="discord" href="https://discord.fhevm.io">
+    Get help from the community
+  </Card>
+
+  <Card title="Office Hours" icon="calendar">
+    Weekly live Q&A sessions with instructors
+  </Card>
+</CardGroup>
+
+## Conclusion
+
+The FHEVM Developer Bootcamp provides a comprehensive, hands-on learning experience that takes students from FHE fundamentals to production deployment in 4 weeks.
+
+Key success factors:
+- **Clear structure**: 12 lessons with defined objectives
+- **Hands-on practice**: 4 homework + 1 capstone
+- **Interactive learning**: Quizzes, demos, live coding
+- **Progress tracking**: Visual feedback and motivation
+- **Community support**: Instructors, TAs, and peer learning
+
+By the end, students will have:
+- ✅ Deep understanding of FHE and FHEVM
+- ✅ 5 working projects in their portfolio
+- ✅ Skills to build production confidential dApps
+- ✅ Certificate of completion
+- ✅ Connections in the FHEVM community
+
+<Card title="Ready to Start?" icon="rocket" href="/">
+  Jump into Week 1 and begin your FHEVM journey!
+</Card>

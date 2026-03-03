@@ -1,0 +1,615 @@
+---
+title: 'Deployment Guide'
+description: 'Deploy the FHEVM Bootcamp platform to production hosting'
+icon: 'rocket'
+---
+
+This guide covers how to build and deploy the FHEVM Developer Bootcamp platform to production hosting services.
+
+## Overview
+
+The bootcamp is a static single-page application (SPA) built with Vite, React, and TypeScript. It can be deployed to any static hosting service including Netlify, Vercel, GitHub Pages, or AWS S3.
+
+<Info>
+The entire application runs client-side with no backend required. All student progress is stored locally using Zustand with localStorage persistence.
+</Info>
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+- Node.js 18+ installed
+- npm or bun package manager
+- Git repository with the bootcamp source code
+- Account on your chosen hosting platform
+
+## Build Process
+
+### Development Build
+
+<Steps>
+  <Step title="Install Dependencies">
+    Install all required packages:
+
+    ```bash
+    npm install
+    ```
+
+    Or with bun:
+
+    ```bash
+    bun install
+    ```
+  </Step>
+
+  <Step title="Run Development Server">
+    Start the local development server:
+
+    ```bash
+    npm run dev
+    ```
+
+    The app will be available at `http://localhost:8080`.
+
+    <Note>
+    The dev server is configured in `vite.config.ts` to run on port 8080 with IPv6 support (`host: "::"`)
+    </Note>
+  </Step>
+
+  <Step title="Test Locally">
+    Verify all features work:
+    - Navigation through curriculum
+    - Progress tracking persistence
+    - Quiz functionality
+    - Instructor mode toggle
+    - Dark mode theme switching
+    - Internationalization (language switcher)
+  </Step>
+</Steps>
+
+### Production Build
+
+<Steps>
+  <Step title="Configure Environment Variables">
+    Create a `.env` file based on `.env.example`:
+
+    ```bash .env
+    # Network Configuration
+    VITE_RPC_URL=https://devnet.zama.ai
+    VITE_CHAIN_ID=8009
+    VITE_NETWORK_NAME=Zama Devnet
+
+    # Contract Addresses
+    VITE_CONTRACT_ADDRESS=0x0000000000000000000000000000000000000000
+    VITE_USE_MOCKS=true
+
+    # UI Configuration
+    VITE_COMICY_FONT_URL=https://example.com/path/to/comicy.ttf
+
+    # App Metadata
+    VITE_APP_NAME=FHEVM Developer Bootcamp
+    VITE_APP_DESCRIPTION=Learn to build confidential applications on Zama Protocol
+    VITE_GITHUB_REPO=https://github.com/zama-ai/fhevm-bootcamp
+    ```
+
+    <Warning>
+    All environment variables must be prefixed with `VITE_` to be accessible in the frontend.
+    </Warning>
+  </Step>
+
+  <Step title="Build for Production">
+    Create an optimized production build:
+
+    ```bash
+    npm run build
+    ```
+
+    This compiles TypeScript, bundles assets, and outputs to the `dist/` directory.
+
+    Build configuration in `vite.config.ts`:
+    - React SWC plugin for fast compilation
+    - Node.js polyfills for crypto libraries
+    - Path aliases (`@` → `./src`)
+    - Global shims for `Buffer`, `process`, `global`
+  </Step>
+
+  <Step title="Build Slides (Optional)">
+    If you're using the Marp presentation slides:
+
+    ```bash
+    npm run build:slides
+    ```
+
+    This converts Markdown slides in `public/slides/` to HTML using Marp CLI.
+  </Step>
+
+  <Step title="Preview Production Build">
+    Test the production build locally:
+
+    ```bash
+    npm run preview
+    ```
+
+    This serves the `dist/` folder to verify the build works correctly.
+  </Step>
+</Steps>
+
+## Deployment Options
+
+### Option 1: Netlify
+
+<Tabs>
+  <Tab title="Netlify CLI">
+    <Steps>
+      <Step title="Install Netlify CLI">
+        ```bash
+        npm install -g netlify-cli
+        ```
+      </Step>
+
+      <Step title="Login to Netlify">
+        ```bash
+        netlify login
+        ```
+      </Step>
+
+      <Step title="Initialize Site">
+        ```bash
+        netlify init
+        ```
+
+        Follow the prompts to:
+        - Create a new site or link to existing
+        - Set build command: `npm run build`
+        - Set publish directory: `dist`
+      </Step>
+
+      <Step title="Deploy">
+        ```bash
+        netlify deploy --prod
+        ```
+      </Step>
+    </Steps>
+  </Tab>
+
+  <Tab title="Netlify UI">
+    <Steps>
+      <Step title="Connect Repository">
+        1. Go to [Netlify](https://app.netlify.com)
+        2. Click "Add new site" → "Import an existing project"
+        3. Connect your Git provider and select the repository
+      </Step>
+
+      <Step title="Configure Build Settings">
+        Set the following:
+        - **Build command**: `npm run build`
+        - **Publish directory**: `dist`
+        - **Node version**: 18 or higher
+      </Step>
+
+      <Step title="Add Environment Variables">
+        In Site settings → Build & deploy → Environment:
+        - Add all `VITE_*` variables from your `.env` file
+      </Step>
+
+      <Step title="Deploy">
+        Click "Deploy site" - Netlify will automatically build and deploy.
+      </Step>
+    </Steps>
+
+    <Info>
+    The `public/_redirects` file is already configured for SPA routing:
+    ```
+    /*    /index.html   200
+    ```
+    </Info>
+  </Tab>
+</Tabs>
+
+### Option 2: Vercel
+
+<Steps>
+  <Step title="Install Vercel CLI">
+    ```bash
+    npm install -g vercel
+    ```
+  </Step>
+
+  <Step title="Login and Deploy">
+    ```bash
+    vercel
+    ```
+
+    Follow the prompts. Vercel auto-detects Vite and configures correctly.
+  </Step>
+
+  <Step title="Set Environment Variables">
+    ```bash
+    vercel env add VITE_RPC_URL
+    vercel env add VITE_CHAIN_ID
+    # ... add all VITE_* variables
+    ```
+
+    Or configure in the Vercel dashboard under Settings → Environment Variables.
+  </Step>
+
+  <Step title="Production Deployment">
+    ```bash
+    vercel --prod
+    ```
+  </Step>
+</Steps>
+
+### Option 3: GitHub Pages
+
+<Steps>
+  <Step title="Update vite.config.ts">
+    Add the base path for your repository:
+
+    ```typescript vite.config.ts
+    export default defineConfig({
+      base: '/fhevm-bootcamp/', // Replace with your repo name
+      // ... rest of config
+    });
+    ```
+  </Step>
+
+  <Step title="Install gh-pages">
+    ```bash
+    npm install --save-dev gh-pages
+    ```
+  </Step>
+
+  <Step title="Add Deploy Script">
+    In `package.json`:
+
+    ```json package.json
+    {
+      "scripts": {
+        "deploy": "npm run build && gh-pages -d dist"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Deploy">
+    ```bash
+    npm run deploy
+    ```
+
+    This builds and pushes the `dist/` folder to the `gh-pages` branch.
+  </Step>
+
+  <Step title="Enable GitHub Pages">
+    In your repository:
+    1. Go to Settings → Pages
+    2. Set source to `gh-pages` branch
+    3. Save
+
+    Your site will be available at `https://<username>.github.io/<repo>/`
+  </Step>
+</Steps>
+
+### Option 4: AWS S3 + CloudFront
+
+<Steps>
+  <Step title="Create S3 Bucket">
+    ```bash
+    aws s3 mb s3://fhevm-bootcamp
+    aws s3 website s3://fhevm-bootcamp --index-document index.html --error-document index.html
+    ```
+  </Step>
+
+  <Step title="Upload Build">
+    ```bash
+    npm run build
+    aws s3 sync dist/ s3://fhevm-bootcamp --delete
+    ```
+  </Step>
+
+  <Step title="Configure CloudFront (Optional)">
+    For HTTPS and CDN:
+    1. Create CloudFront distribution
+    2. Set origin to S3 bucket
+    3. Configure custom error response: 404 → 200 → /index.html (for SPA routing)
+    4. Add SSL certificate via ACM
+  </Step>
+</Steps>
+
+## Environment Variables Reference
+
+All environment variables used in the bootcamp platform:
+
+<ParamField path="VITE_RPC_URL" type="string" required>
+  RPC endpoint for blockchain connections (e.g., `https://devnet.zama.ai`)
+</ParamField>
+
+<ParamField path="VITE_CHAIN_ID" type="number" required>
+  Chain ID for the network (e.g., `8009` for Zama Devnet)
+</ParamField>
+
+<ParamField path="VITE_NETWORK_NAME" type="string" required>
+  Display name for the network (e.g., `"Zama Devnet"`)
+</ParamField>
+
+<ParamField path="VITE_CONTRACT_ADDRESS" type="string">
+  Default contract address for demos. Use `0x0000...` for mock mode.
+</ParamField>
+
+<ParamField path="VITE_USE_MOCKS" type="boolean" default="true">
+  Enable mock contract interactions for testing without blockchain
+</ParamField>
+
+<ParamField path="VITE_COMICY_FONT_URL" type="string">
+  URL to custom Comicy font file (optional)
+</ParamField>
+
+<ParamField path="VITE_APP_NAME" type="string" default="FHEVM Developer Bootcamp">
+  Application name displayed in title and meta tags
+</ParamField>
+
+<ParamField path="VITE_APP_DESCRIPTION" type="string">
+  SEO description for the bootcamp
+</ParamField>
+
+<ParamField path="VITE_GITHUB_REPO" type="string">
+  GitHub repository URL for "View Source" links
+</ParamField>
+
+## Build Optimization
+
+### Bundle Size Analysis
+
+Analyze your build size:
+
+```bash
+npm run build -- --mode analyze
+```
+
+Or use rollup-plugin-visualizer by adding to `vite.config.ts`:
+
+```typescript
+import { visualizer } from 'rollup-plugin-visualizer';
+
+export default defineConfig({
+  plugins: [
+    // ... existing plugins
+    visualizer({ open: true })
+  ]
+});
+```
+
+### Performance Tips
+
+<AccordionGroup>
+  <Accordion title="Code Splitting">
+    The bootcamp already uses React Router lazy loading for pages. Further split large components:
+
+    ```typescript
+    const ContractExplorer = lazy(() => import('@/components/lesson/ContractExplorer'));
+    ```
+  </Accordion>
+
+  <Accordion title="Asset Optimization">
+    - Compress images before adding to `public/`
+    - Use WebP format for better compression
+    - Serve fonts from CDN (already configured for Telegraf)
+  </Accordion>
+
+  <Accordion title="Caching Strategy">
+    Configure cache headers in your hosting:
+
+    **Netlify** (`netlify.toml`):
+    ```toml
+    [[headers]]
+      for = "/assets/*"
+      [headers.values]
+        Cache-Control = "public, max-age=31536000, immutable"
+    ```
+
+    **Vercel** (`vercel.json`):
+    ```json
+    {
+      "headers": [
+        {
+          "source": "/assets/(.*)",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=31536000, immutable"
+            }
+          ]
+        }
+      ]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Continuous Deployment
+
+### Automated Deploys with Git
+
+Most platforms support automatic deployment on git push:
+
+<Steps>
+  <Step title="Connect Repository">
+    Link your Git repository in the hosting dashboard
+  </Step>
+
+  <Step title="Configure Branch">
+    Set production branch (usually `main` or `master`)
+  </Step>
+
+  <Step title="Enable Auto-Deploy">
+    Every push to the production branch triggers a build and deploy
+  </Step>
+
+  <Step title="Preview Deploys (Optional)">
+    Enable preview deployments for pull requests to test changes before merging
+  </Step>
+</Steps>
+
+### GitHub Actions Example
+
+```yaml .github/workflows/deploy.yml
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build
+        run: npm run build
+        env:
+          VITE_RPC_URL: ${{ secrets.VITE_RPC_URL }}
+          VITE_CHAIN_ID: ${{ secrets.VITE_CHAIN_ID }}
+          VITE_NETWORK_NAME: ${{ secrets.VITE_NETWORK_NAME }}
+      
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './dist'
+          production-deploy: true
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="404 on Page Refresh">
+    **Problem**: Refreshing any route except `/` returns 404.
+
+    **Solution**: Ensure your hosting is configured for SPA routing:
+    - **Netlify**: Check `public/_redirects` exists with `/* /index.html 200`
+    - **Vercel**: Add `vercel.json` with rewrites configuration
+    - **GitHub Pages**: Use hash router or configure 404.html
+  </Accordion>
+
+  <Accordion title="Environment Variables Not Working">
+    **Problem**: `import.meta.env.VITE_*` is undefined.
+
+    **Solution**:
+    1. Ensure variables are prefixed with `VITE_`
+    2. Rebuild after changing `.env`
+    3. For hosting platforms, set variables in the dashboard
+    4. Check variables are set in build environment, not just runtime
+  </Accordion>
+
+  <Accordion title="Large Bundle Size">
+    **Problem**: Build size is too large.
+
+    **Solution**:
+    1. Check for duplicate dependencies: `npm dedupe`
+    2. Analyze bundle: `npm run build -- --mode analyze`
+    3. Remove unused Radix UI components
+    4. Use dynamic imports for heavy components
+  </Accordion>
+
+  <Accordion title="Build Fails on Hosting Platform">
+    **Problem**: Build succeeds locally but fails on hosting.
+
+    **Solution**:
+    1. Check Node.js version matches (18+)
+    2. Ensure lock file is committed (`package-lock.json`)
+    3. Check build logs for missing environment variables
+    4. Try `npm ci` instead of `npm install` locally
+  </Accordion>
+</AccordionGroup>
+
+## Custom Domain Setup
+
+After deploying, configure a custom domain:
+
+<Tabs>
+  <Tab title="Netlify">
+    1. Go to Site settings → Domain management
+    2. Click "Add custom domain"
+    3. Follow DNS configuration instructions
+    4. Netlify auto-provisions SSL via Let's Encrypt
+  </Tab>
+
+  <Tab title="Vercel">
+    1. Go to Project settings → Domains
+    2. Add your domain
+    3. Configure DNS records as instructed
+    4. SSL is automatically configured
+  </Tab>
+
+  <Tab title="GitHub Pages">
+    1. In repository Settings → Pages
+    2. Enter custom domain
+    3. Create CNAME record pointing to `<username>.github.io`
+    4. Enable "Enforce HTTPS"
+  </Tab>
+</Tabs>
+
+## Monitoring and Analytics
+
+### Add Analytics
+
+Integrate analytics in `index.html`:
+
+```html
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+```
+
+Or use Plausible for privacy-friendly analytics:
+
+```html
+<script defer data-domain="yourdomain.com" src="https://plausible.io/js/script.js"></script>
+```
+
+### Error Monitoring
+
+Add Sentry for error tracking:
+
+```bash
+npm install @sentry/react
+```
+
+```typescript src/main.tsx
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: "YOUR_SENTRY_DSN",
+  environment: import.meta.env.MODE,
+});
+```
+
+## Next Steps
+
+After deployment:
+
+1. [Customize branding and content](/guides/customization)
+2. [Set up instructor access](/guides/instructor-setup)
+3. Review the [student experience](/guides/student-experience)
+4. Monitor analytics and user feedback
+
+<Card title="Need Help?" icon="question" href="https://github.com/zama-ai/fhevm-bootcamp/issues">
+  Open an issue on GitHub for deployment support
+</Card>

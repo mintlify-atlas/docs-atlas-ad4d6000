@@ -1,0 +1,453 @@
+---
+title: Instructor Mode
+description: Teaching notes, facilitation features, pacing guides, and cohort vs self-paced mode for instructors
+icon: 'graduation-cap'
+---
+
+## Overview
+
+Instructor Mode is a toggle that reveals teaching-specific features throughout the bootcamp. It's designed for educators running cohort-based workshops, community leaders facilitating study groups, and technical trainers delivering FHEVM content.
+
+<Info>
+Instructor Mode is **always available** and persisted to localStorage. It doesn't require authentication - it's a UI preference.
+</Info>
+
+## Enabling Instructor Mode
+
+### Toggle Control
+
+The instructor mode toggle is managed by Zustand:
+
+```typescript src/state/bootcampStore.ts
+instructorMode: boolean;
+toggleInstructorMode: () => void;
+
+// Implementation
+instructorMode: true,  // Default ON
+toggleInstructorMode: () =>
+  set((state) => ({ instructorMode: !state.instructorMode })),
+```
+
+### UI Integration
+
+The toggle appears in the main navigation (AppBar):
+
+```tsx src/components/layout/AppBar.tsx
+import { useBootcampStore } from '@/state/bootcampStore';
+
+const { instructorMode, toggleInstructorMode } = useBootcampStore();
+
+<Button
+  variant="ghost"
+  onClick={toggleInstructorMode}
+  className="gap-2"
+>
+  <GraduationCap className="h-4 w-4" />
+  {instructorMode ? 'Student View' : 'Instructor View'}
+</Button>
+```
+
+<Tip>
+Instructor Mode defaults to **ON** in this codebase to showcase teaching features. Production apps might default to OFF.
+</Tip>
+
+## Features Enabled by Instructor Mode
+
+### 1. Instructor Notes in Lessons
+
+Each lesson includes practical teaching guidance visible only when instructor mode is on:
+
+```tsx src/pages/LessonView.tsx
+import { InstructorNotes } from '@/components/lesson/InstructorNotes';
+
+{instructorMode && lesson.instructorNotes.length > 0 && (
+  <InstructorNotes notes={lesson.instructorNotes} />
+)}
+```
+
+**Example notes from "Welcome to FHEVM":**
+
+```typescript src/data/curriculum.ts
+instructorNotes: [
+  'Start with the "why": show a token transfer on Etherscan (sender, receiver, amount visible). Ask: "Would you use this to pay your salary?" This motivates FHE.',
+  'The HTTPS analogy is your best friend: HTTPS encrypts in transit, server sees plaintext. FHE encrypts in compute — the EVM never sees plaintext.',
+  'Gauge audience familiarity - if most have crypto background, lean into technical comparisons with ZK proofs vs FHE.',
+  'Estimated pacing: 10 min lecture, 10 min slides, 10 min discussion/Q&A.',
+]
+```
+
+**Rendered as:**
+
+<Card title="Instructor Notes" icon="graduation-cap" color="#f59e0b">
+  - Start with the "why": show a token transfer on Etherscan
+  - The HTTPS analogy is your best friend
+  - Gauge audience familiarity
+  - Estimated pacing: 10 min lecture, 10 min slides, 10 min Q&A
+</Card>
+
+<Note>
+Instructor notes are **collapsible** by default to reduce visual clutter. They expand/collapse with smooth animation.
+</Note>
+
+### 2. Instructor Guide Page
+
+A dedicated `/instructor-guide` route provides comprehensive facilitation guidance:
+
+```tsx src/pages/InstructorGuide.tsx
+import InstructorGuide from '@/pages/InstructorGuide';
+```
+
+**Sections include:**
+
+<AccordionGroup>
+  <Accordion title="General Guidance">
+    - Cohort vs self-paced recommendations
+    - Pre-workshop preparation checklists
+    - Office hours scheduling tips
+    - Discord/community setup advice
+  </Accordion>
+  
+  <Accordion title="Mock vs Real FHE">
+    - Explanation of mock encryption in the UI simulator
+    - When to use Sepolia testnet vs local Hardhat
+    - How to transition students to real FHEVM SDK
+    - Link to fhevm-hardhat-template
+  </Accordion>
+  
+  <Accordion title="Suggested Schedule">
+    - Week-by-week pacing breakdown
+    - Day 1-2: Cover lessons
+    - Day 3-5: Students work on homework
+    - Day 6-7: Review and feedback
+  </Accordion>
+  
+  <Accordion title="Per-Lesson Teaching Notes">
+    - All instructor notes from all lessons, aggregated
+    - Organized by week and lesson number
+    - Homework guidance (estimated effort, grading focus)
+  </Accordion>
+</AccordionGroup>
+
+### 3. Cohort vs Self-Paced Mode
+
+Instructor Guide includes recommendations for both delivery modes:
+
+```tsx src/pages/InstructorGuide.tsx
+<div className="grid md:grid-cols-2 gap-4">
+  <div className="p-4 rounded-lg border">
+    <h4 className="font-medium flex items-center gap-2">
+      <Users className="h-4 w-4" />
+      Cohort Mode
+    </h4>
+    <ul>
+      <li>-- Synchronous sessions (2-3 hours each)</li>
+      <li>-- Unlock content week-by-week</li>
+      <li>-- Live Q&A and pair programming</li>
+      <li>-- Graded homework with feedback</li>
+      <li>-- Discord for async discussion</li>
+    </ul>
+  </div>
+  
+  <div className="p-4 rounded-lg border">
+    <h4 className="font-medium flex items-center gap-2">
+      <Calendar className="h-4 w-4" />
+      Self-Paced Mode
+    </h4>
+    <ul>
+      <li>-- All content unlocked immediately</li>
+      <li>-- Students set their own deadlines</li>
+      <li>-- Optional office hours</li>
+      <li>-- Self-check quizzes (no grading)</li>
+      <li>-- Async forum for questions</li>
+    </ul>
+  </div>
+</div>
+```
+
+<Info>
+The `learningMode` state variable controls content gating via `canAccessWeek()` and `canAccessLesson()` getters.
+</Info>
+
+### 4. Mock vs Real FHE Warning
+
+Instructor Guide includes a prominent callout:
+
+```tsx src/pages/InstructorGuide.tsx
+<Card className="border-blue-500/20 bg-blue-500/5">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Cpu className="h-5 w-5 text-blue-600" />
+      Mock vs Real FHE
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <p>
+      This bootcamp UI uses **mock encryption** in interactive components 
+      (VotingSimulator, ContractExplorer). Real FHEVM contracts require the 
+      full SDK stack (fhevmjs, Relayer SDK, Sepolia testnet).
+    </p>
+    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10">
+      <AlertTriangle className="h-4 w-4 text-amber-600" />
+      <p className="text-xs">
+        Students MUST use the fhevm-hardhat-template to deploy real contracts. 
+        The UI simulator is for learning the concepts, not production deployment.
+      </p>
+    </div>
+    <Button variant="outline" size="sm" asChild>
+      <a href="https://github.com/zama-ai/fhevm-hardhat-template" target="_blank">
+        <ExternalLink className="h-3.5 w-3.5 mr-2" />
+        Clone fhevm-hardhat-template
+      </a>
+    </Button>
+  </CardContent>
+</Card>
+```
+
+<Warning>
+This is a critical distinction for instructors to communicate. The bootcamp UI is **pedagogical**, not a production deployment tool.
+</Warning>
+
+## Instructor Notes Component
+
+The component that renders lesson-level instructor notes:
+
+```tsx src/components/lesson/InstructorNotes.tsx
+import { InstructorNotes } from '@/components/lesson/InstructorNotes';
+
+interface InstructorNotesProps {
+  notes: string[];
+}
+
+export const InstructorNotes: React.FC<InstructorNotesProps> = ({ notes }) => {
+  const [expanded, setExpanded] = useState(false);
+  
+  return (
+    <Card className="border-amber-500/30 bg-amber-500/5">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-amber-600" />
+            Instructor Notes
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? (
+              <><ChevronUp className="h-3 w-3" /> Collapse</>
+            ) : (
+              <><ChevronDown className="h-3 w-3" /> Expand</>
+            )}
+          </Button>
+        </div>
+      </CardHeader>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+          >
+            <CardContent>
+              <ul className="space-y-2">
+                {notes.map((note, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm">
+                    <span className="text-amber-600 mt-0.5">--</span>
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {!expanded && (
+        <CardContent className="pt-0">
+          <p className="text-xs text-muted-foreground italic">
+            {notes.length} teaching note{notes.length !== 1 ? 's' : ''} available
+          </p>
+        </CardContent>
+      )}
+    </Card>
+  );
+};
+```
+
+**Key features:**
+- Collapsed by default (shows count)
+- Smooth expand/collapse animation
+- Amber color scheme (distinct from student content)
+- Support for markdown-style links: `[label](url)`
+
+## Writing Effective Instructor Notes
+
+### Structure
+
+Good instructor notes follow this pattern:
+
+```typescript
+instructorNotes: [
+  // 1. Opening hook or motivation
+  'Start with the "why": show a token transfer on Etherscan',
+  
+  // 2. Key analogies or examples
+  'The HTTPS analogy is your best friend',
+  
+  // 3. Common student mistakes
+  'Common mistake: Forgetting FHE.allowThis() after arithmetic',
+  
+  // 4. Pacing guidance
+  'Estimated pacing: 10 min lecture, 10 min slides, 10 min Q&A',
+  
+  // 5. Audience-specific tips
+  'If most have crypto background, lean into ZK vs FHE comparison',
+]
+```
+
+### Do's and Don'ts
+
+<CardGroup cols={2}>
+  <Card title="DO" icon="check-circle">
+    - Write in second person ("you")
+    - Include time estimates
+    - Highlight common mistakes
+    - Suggest interactive activities
+    - Reference specific slides or code
+  </Card>
+  
+  <Card title="DON'T" icon="x-circle">
+    - Duplicate lesson content
+    - Write vague notes ("cover this well")
+    - Assume prior knowledge
+    - Skip pacing guidance
+    - Forget to test the examples yourself
+  </Card>
+</CardGroup>
+
+### Example: Dense Lesson Notes
+
+From "FHE Deep Dive" (Week 1, Lesson 3):
+
+```typescript src/data/curriculum.ts
+instructorNotes: [
+  'This is the densest lesson - consider splitting it across two sessions for cohort delivery.',
+  
+  'Don\'t rush ACL. It\'s the most misunderstood concept: FHE.allow() is not a getter — it grants off-chain decrypt permission. The contract still needs allowThis separately to compute on the value. Dedicate at least 15 min to what happens when you forget each call.',
+  
+  'Common mistake 1: Forgetting FHE.allowThis() after arithmetic. FHE.add produces a new handle; the new handle has no permissions yet. Draw the "new-handle rule": _count (handle 0x1) → FHE.add → new_count (handle 0x2) — handle 0x2 has NO permissions yet.',
+  
+  'Common mistake 2: Confusing euint32 (internal) vs externalEuint32 (user input). Use the analogy: externalEuint32 is an unopened envelope; FHE.fromExternal is the post office verifying and stamping it.',
+  
+  'Common mistake 3: Not calling FHE.allow(result, msg.sender). allowThis = contract can use the value; allow(addr) = that address can decrypt off-chain. Both are almost always needed together.',
+  
+  'Use the interactive type comparison table - have students predict which type to use for different scenarios.',
+  
+  'Show forge test verbosity: run the same test with default, -v, and -vvv. Students are often surprised how much -vvv reveals (call traces, gas, revert reasons). This is their main debugging tool.',
+]
+```
+
+<Check>
+These notes provide **actionable guidance** ("dedicate 15 min", "draw the rule"), **analogies** ("unopened envelope"), and **common mistakes** with visual examples.
+</Check>
+
+## Suggested Teaching Schedule
+
+The Instructor Guide includes a week-by-week schedule:
+
+```tsx src/pages/InstructorGuide.tsx
+{curriculum.weeks.map((week) => (
+  <div key={week.id} className="p-4 rounded-lg border">
+    <div className="flex items-center justify-between mb-2">
+      <h4 className="font-medium">Week {week.number}: {week.title}</h4>
+      <Badge variant="outline">
+        <Clock className="h-3 w-3 mr-1" />
+        {week.estimatedHours} hours total
+      </Badge>
+    </div>
+    <div className="grid gap-1 text-sm text-muted-foreground">
+      <p>
+        <strong>Day 1-2:</strong> Cover lessons ({week.lessons.map(l => l.title).join(', ')})
+      </p>
+      <p>
+        <strong>Day 3-5:</strong> Students work on homework: "{week.homework.title}"
+      </p>
+      <p>
+        <strong>Day 6-7:</strong> Review submissions, provide feedback, office hours
+      </p>
+    </div>
+  </div>
+))}
+```
+
+**For a 4-week cohort:**
+- Week 1: Foundations (8 hours)
+- Week 2: Development (10 hours)
+- Week 3: dApps (12 hours)
+- Week 4: Production (12 hours)
+- **Total**: ~42 hours of content
+
+## Homework Grading Guidance
+
+Instructor Guide shows homework metadata:
+
+```tsx src/pages/InstructorGuide.tsx
+<div className="p-4 rounded-lg bg-orange-500/5 border border-orange-500/20">
+  <h4 className="font-medium flex items-center gap-2">
+    <Target className="h-4 w-4 text-orange-500" />
+    Homework: {week.homework.title}
+  </h4>
+  <ul className="space-y-1 text-sm text-muted-foreground">
+    <li>-- Estimated effort: {week.homework.estimatedHours} hours</li>
+    <li>-- {week.homework.requirements.length} requirements to check off</li>
+    <li>-- Focus grading on: {week.homework.gradingCriteria.map(c => `${c.name} (${c.weight}%)`).join(', ')}</li>
+  </ul>
+</div>
+```
+
+**Example output:**
+- Estimated effort: 3 hours
+- 4 requirements to check off
+- Focus grading on: Conceptual Understanding (40%), Setup Verification (40%), Bonus Exploration (20%)
+
+## Access Control in Cohort Mode
+
+Instructor Guide explains the difference between learning modes:
+
+```typescript src/state/bootcampStore.ts
+learningMode: 'self-paced' | 'cohort';
+
+canAccessWeek: (weekId: string) => {
+  if (learningMode === 'self-paced') return true;
+  // Cohort mode: must complete previous week
+  const weekIndex = curriculum.weeks.findIndex(w => w.id === weekId);
+  if (weekIndex <= 0) return true;
+  const prevWeekId = curriculum.weeks[weekIndex - 1].id;
+  return isWeekCompleted(prevWeekId);
+},
+```
+
+**In practice:**
+- **Self-paced**: All weeks/lessons unlocked from day 1
+- **Cohort**: Week 2 locked until Week 1 complete, etc.
+
+<Tip>
+For bootcamps, cohort mode keeps students synchronized. For documentation sites, self-paced mode is better.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Curriculum" icon="book-open" href="./curriculum">
+    Review the overall curriculum structure
+  </Card>
+  <Card title="Progress Tracking" icon="chart-line" href="./progress-tracking">
+    Understand how completion is tracked and reported
+  </Card>
+  <Card title="Lessons" icon="book" href="./lessons">
+    Deep dive into lesson structure and sections
+  </Card>
+  <Card title="Homework" icon="clipboard" href="./homework">
+    Explore homework assignments and grading
+  </Card>
+</CardGroup>

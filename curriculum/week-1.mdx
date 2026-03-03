@@ -1,0 +1,397 @@
+---
+title: Week 1 - Foundations of Confidential Computing
+description: Understand FHE, set up tooling, grasp FHEVM architecture
+icon: foundation
+---
+
+# Week 1: Foundations of Confidential Computing
+
+**Subtitle:** Understand FHE, set up tooling, grasp FHEVM architecture
+
+**Estimated Time:** 8 hours of lessons + 3 hours homework
+
+## Objectives
+
+<CardGroup cols={2}>
+  <Card title="Understand FHE" icon="brain">
+    Define Fully Homomorphic Encryption and explain why it matters for blockchain privacy
+  </Card>
+  <Card title="Dev Environment" icon="terminal">
+    Set up complete FHEVM development environment with Hardhat and MetaMask
+  </Card>
+  <Card title="Network Config" icon="network-wired">
+    Connect wallet to Sepolia testnet and obtain test ETH
+  </Card>
+  <Card title="FHEVM Architecture" icon="diagram-project">
+    Master encrypted types, operations, and the FHEVM data flow
+  </Card>
+</CardGroup>
+
+## Milestone
+
+<Check>Working dev environment with wallet connected to Sepolia</Check>
+<Check>Solid understanding of FHE fundamentals</Check>
+<Check>Completed FHE Concepts & Setup Verification homework</Check>
+
+---
+
+## Lessons
+
+### Lesson 1.1: Welcome to FHEVM
+**Duration:** 30 minutes
+
+<Accordion title="Learning Objectives">
+  - Define Fully Homomorphic Encryption in your own words
+  - Explain how FHEVM brings FHE to Ethereum
+  - Identify 3+ real-world use cases for confidential computing
+  - Describe the high-level FHEVM data flow: encrypt → compute → decrypt
+</Accordion>
+
+<Accordion title="Key Topics">
+  **What is Fully Homomorphic Encryption?**
+  
+  FHE allows computation on encrypted data without ever decrypting it. Think of it as performing math on a locked safe — you can add, subtract, and calculate inside without ever seeing the contents.
+  
+  <Info>Traditional encryption requires decryption before processing — exposing sensitive data. FHE eliminates this vulnerability entirely.</Info>
+  
+  **The Zama Protocol & FHEVM**
+  
+  FHEVM is an EVM-compatible runtime that exposes FHE types and operations in smart contracts via the Zama Solidity library.
+  
+  The core flow:
+  1. Client encrypts input
+  2. Contract computes on ciphertexts
+  3. Contract marks values as publicly decryptable
+  4. Client performs off-chain decryption via the Relayer SDK
+  5. Client submits the cleartext + proof back on-chain for verification
+  
+  **Real-World Use Cases**
+  
+  <CardGroup cols={2}>
+    <Card title="Confidential Voting" icon="check-to-slot">
+      Votes remain encrypted during voting. Only the final tally is revealed.
+    </Card>
+    <Card title="Sealed-Bid Auctions" icon="gavel">
+      Bidders submit encrypted bids. The contract determines the winner without revealing losing bids.
+    </Card>
+    <Card title="Private Token Transfers" icon="money-bill-transfer">
+      Transfer amounts stay hidden while the contract validates balances.
+    </Card>
+    <Card title="Confidential DeFi" icon="landmark">
+      Lending protocols where positions and balances remain private.
+    </Card>
+  </CardGroup>
+  
+  **FHEVM Data Flow**
+  
+  ```mermaid
+  flowchart LR
+      A["Client Browser"] -->|"1. Encrypt input"| B["FHEVM Contract"]
+      B -->|"2. Compute on ciphertexts"| B
+      B -->|"3. makePubliclyDecryptable"| B
+      A -->|"4. publicDecrypt via Relayer SDK"| C["Zama KMS"]
+      C -->|"5. Return cleartext + proof"| A
+      A -->|"6. Submit proof on-chain"| B
+  ```
+</Accordion>
+
+<Accordion title="Resources">
+  - [Official Zama Solidity Guides](https://docs.zama.org/protocol/solidity-guides)
+  - [Getting Started – Overview](https://docs.zama.org/protocol/solidity-guides/getting-started/overview)
+  - [Quick Start Tutorial](https://docs.zama.org/protocol/solidity-guides/getting-started/quick-start-tutorial)
+</Accordion>
+
+---
+
+### Lesson 1.2: Environment & Wallet Setup
+**Duration:** 45 minutes
+
+<Accordion title="Learning Objectives">
+  - Install Node.js (v18+), npm, and verify versions
+  - Clone and configure the FHEVM Hardhat template
+  - Set up environment variables for Sepolia testnet
+  - Install and configure MetaMask wallet
+  - Connect wallet to Sepolia and obtain test ETH from faucet
+</Accordion>
+
+<Accordion title="Step-by-Step Setup">
+  **Step 1: Install Node.js & npm**
+  
+  ```bash
+  # Verify Node.js installation
+  node --version   # Should show v18.x.x or higher
+  
+  # Verify npm installation
+  npm --version    # Should show 9.x.x or higher
+  
+  # If using nvm (recommended):
+  nvm install 18
+  nvm use 18
+  ```
+  
+  **Step 2: Clone the FHEVM Hardhat Template**
+  
+  ```bash
+  # Clone the official FHEVM template
+  git clone https://github.com/zama-ai/fhevm-hardhat-template.git
+  cd fhevm-hardhat-template
+  
+  # Install dependencies
+  npm install
+  
+  # Copy the example environment file
+  cp .env.example .env
+  ```
+  
+  **Step 3: Configure Environment Variables**
+  
+  ```bash .env
+  # .env file configuration
+  MNEMONIC="your twelve word mnemonic phrase here"
+  # OR use a private key:
+  PRIVATE_KEY="0xYourPrivateKeyHere"
+  ```
+  
+  <Warning>
+    NEVER commit your .env file to git — it contains sensitive keys. Use a dedicated development wallet with testnet funds only.
+  </Warning>
+  
+  **Step 4: Wallet & Network Setup**
+  
+  1. Install [MetaMask](https://metamask.io) browser extension
+  2. Create a new wallet or import existing (use a dedicated dev wallet)
+  3. Add Sepolia testnet to MetaMask
+  4. Get test ETH from [Sepolia faucet](https://sepoliafaucet.com)
+  
+  **Step 5: Verify Everything Works**
+  
+  ```bash
+  # Compile contracts to verify setup
+  npx hardhat compile
+  
+  # Run a quick test
+  npx hardhat test
+  
+  # If everything passes, your environment is ready!
+  ```
+</Accordion>
+
+---
+
+### Lesson 1.3: FHE Deep Dive
+**Duration:** 60 minutes
+
+<Accordion title="Learning Objectives">
+  - List all FHEVM encrypted types and when to use each one
+  - Write homomorphic operations: add, sub, mul, comparison, select
+  - Explain the role of FHE.allowThis() and FHE.allow()
+  - Describe public vs. private decryption and when to use each
+  - Draw the FHEVM architecture diagram from memory
+</Accordion>
+
+<Accordion title="FHEVM Encrypted Types">
+  <AccordionGroup>
+    <Accordion title="ebool - Encrypted Boolean">
+      Encrypted true/false. Use for flags, conditions, and binary choices.
+      
+      **Range:** true or false (encrypted)
+    </Accordion>
+    
+    <Accordion title="euint8 - Encrypted 8-bit Integer">
+      Encrypted 8-bit unsigned integer (0-255).
+      
+      **Use for:** Small values like votes, ratings, simple counters
+      
+      **Gas:** Cheapest encrypted type
+    </Accordion>
+    
+    <Accordion title="euint16 - Encrypted 16-bit Integer">
+      Encrypted 16-bit unsigned integer (0-65535).
+      
+      **Use for:** Medium-range values
+    </Accordion>
+    
+    <Accordion title="euint32 - Encrypted 32-bit Integer">
+      Encrypted 32-bit unsigned integer.
+      
+      **Use for:** Larger counters, timestamps, vote tallies (FHEVM v0.9+ standard)
+    </Accordion>
+    
+    <Accordion title="euint64 - Encrypted 64-bit Integer">
+      Encrypted 64-bit unsigned integer.
+      
+      **Use for:** Token amounts, balances, large financial values
+    </Accordion>
+    
+    <Accordion title="euint128 / euint256 - Large Encrypted Integers">
+      Encrypted large integers.
+      
+      **Use for:** Cryptographic values, very large balances
+      
+      **Gas:** Most expensive encrypted types
+    </Accordion>
+    
+    <Accordion title="eaddress - Encrypted Address">
+      Encrypted address type.
+      
+      **Use for:** Private recipient addresses
+    </Accordion>
+  </AccordionGroup>
+  
+  <Info>
+    **Gas Optimization Tip:** Always use the smallest type that fits your data — smaller types use less gas.
+  </Info>
+</Accordion>
+
+<Accordion title="Homomorphic Operations">
+  **Arithmetic Operations**
+  
+  ```solidity
+  // Addition
+  euint32 sum = FHE.add(a, b);
+  
+  // Subtraction (WRAPS on underflow - see safe patterns)
+  euint32 diff = FHE.sub(a, b);
+  
+  // Multiplication
+  euint32 product = FHE.mul(a, b);
+  ```
+  
+  **Comparison Operations**
+  
+  ```solidity
+  // Greater than
+  ebool isGreater = FHE.gt(a, b);
+  
+  // Greater than or equal
+  ebool isGte = FHE.gte(a, b);
+  
+  // Less than
+  ebool isLess = FHE.lt(a, b);
+  
+  // Equality
+  ebool isEqual = FHE.eq(a, b);
+  ```
+  
+  **Encrypted Ternary (FHE.select)**
+  
+  ```solidity
+  // Replaces if/else for encrypted conditions
+  euint32 result = FHE.select(
+      condition,      // ebool
+      valueIfTrue,    // euint32
+      valueIfFalse    // euint32
+  );
+  ```
+  
+  <Warning>
+    You **cannot** use regular `if/else` with encrypted conditions. Always use `FHE.select()` instead.
+  </Warning>
+</Accordion>
+
+<Accordion title="Access Control & Decryption (v0.9+)">
+  **FHE.allowThis()** — Grants the contract permission to work with an encrypted value
+  
+  **FHE.allow(value, address)** — Grants a specific address permission to decrypt a value privately
+  
+  **FHE.makePubliclyDecryptable(value)** — Marks a ciphertext so anyone can request its decryption off-chain
+  
+  **Self-Relaying Decryption Flow (v0.9+)**
+  
+  ```solidity
+  // Step 1 (on-chain): Mark value as publicly decryptable
+  encryptedValue = FHE.makePubliclyDecryptable(encryptedValue);
+  bytes32 handle = FHE.toBytes32(encryptedValue);
+  emit ValueReadyForDecryption(handle);
+  
+  // Step 2 (off-chain, in frontend):
+  // Client uses @zama-fhe/relayer-sdk to call publicDecrypt(handle)
+  // This returns { cleartext, decryptionProof }
+  
+  // Step 3 (on-chain): Verify and use the decrypted result
+  function resolveCallback(
+      bytes memory cleartexts,
+      bytes memory decryptionProof
+  ) external {
+      bytes32[] memory handlesList = new bytes32[](1);
+      handlesList[0] = handle;
+      FHE.checkSignatures(handlesList, cleartexts, decryptionProof);
+      uint32 result = abi.decode(cleartexts, (uint32));
+      // Use the verified decrypted result...
+  }
+  ```
+  
+  <Info>
+    In v0.9+, there is **no Oracle**. The dApp client drives decryption off-chain and submits the proof back on-chain.
+  </Info>
+</Accordion>
+
+---
+
+## Homework: FHE Concepts & Setup Verification
+
+**Estimated Time:** 3 hours
+
+**Objective:** Demonstrate your understanding of FHE fundamentals and verify your development environment is fully configured.
+
+### Requirements
+
+<AccordionGroup>
+  <Accordion title="1. Conceptual Questions (40%)">
+    Answer 10 written questions about FHE, FHEVM, and the Zama Protocol. Submit as a markdown file.
+    
+    Sample questions:
+    - What does FHE stand for and what makes it "fully" homomorphic?
+    - Name three real-world use cases for FHEVM and explain why each needs encrypted computation
+    - In the FHEVM data flow, list the 5 steps from user input to on-chain result
+  </Accordion>
+  
+  <Accordion title="2. Environment Verification (40%)">
+    Submit screenshots showing:
+    - Node.js version (`node --version`)
+    - Successful Hardhat compilation (`npx hardhat compile`)
+    - MetaMask connected to Sepolia testnet
+  </Accordion>
+  
+  <Accordion title="3. Type Selection Exercise">
+    Given 5 scenarios, choose the appropriate FHEVM encrypted type and justify your choice in 1-2 sentences each.
+    
+    Example: "A user's age (0-150)" → euint8 (max 255, cheapest gas)
+  </Accordion>
+  
+  <Accordion title="4. Architecture Diagram">
+    Draw (or write in mermaid syntax) the FHEVM architecture diagram from memory, labeling each component and data flow.
+  </Accordion>
+</AccordionGroup>
+
+### Grading Criteria
+
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| Conceptual Understanding | 40% | Accuracy and depth of answers to conceptual questions |
+| Setup Verification | 40% | Evidence of a working development environment |
+| Bonus Exploration | 20% | Extra credit for exploring beyond the lesson material |
+
+### Submission
+
+<Steps>
+  <Step title="Create folder">
+    Create a folder named `homework-1-[yourname]`
+  </Step>
+  <Step title="Include files">
+    - `answers.md` with your written responses
+    - `screenshots/` folder with verification images
+    - `architecture.md` or `architecture.mmd` with your diagram
+  </Step>
+  <Step title="Submit">
+    Zip the folder and submit — [Submission portal coming soon]
+  </Step>
+</Steps>
+
+---
+
+## Next Steps
+
+<Card title="Continue to Week 2" icon="arrow-right" href="/curriculum/week-2">
+  Now that you understand FHE fundamentals and have your environment set up, move on to Week 2 to write your first FHEVM smart contract.
+</Card>

@@ -1,0 +1,698 @@
+---
+title: 'Customization Guide'
+description: 'Customize curriculum, branding, and content for your bootcamp'
+icon: 'palette'
+---
+
+This guide explains how to customize the FHEVM Bootcamp platform for your organization, including branding, curriculum content, and feature configuration.
+
+## Overview
+
+The bootcamp platform is designed to be highly customizable while maintaining a consistent structure. You can modify:
+
+- **Branding**: Colors, fonts, logos, and visual identity
+- **Curriculum**: Lessons, homework, quizzes, and learning objectives
+- **Features**: Enable/disable instructor mode, cohort mode, progress tracking
+- **Content**: Code examples, videos, diagrams, and interactive components
+
+## Branding Customization
+
+### Colors and Theme
+
+<Steps>
+  <Step title="Update CSS Variables">
+    Edit color definitions in `src/index.css`:
+
+    ```css src/index.css
+    @layer base {
+      :root {
+        /* Replace Zama Yellow with your brand color */
+        --zama-yellow: 48 100% 50%;        /* Your primary HSL */
+        --zama-yellow-bright: 51 100% 56%; /* Lighter variant */
+        --zama-yellow-dark: 48 100% 40%;   /* Darker variant */
+        --zama-yellow-subtle: 48 100% 95%; /* Very light background */
+
+        /* Primary color uses your brand */
+        --primary: var(--zama-yellow);
+        --primary-foreground: 220 13% 18%;
+
+        /* Focus rings and accents */
+        --ring: var(--zama-yellow);
+        --accent: var(--zama-yellow-subtle);
+      }
+
+      .dark {
+        /* Dark mode variants */
+        --primary: var(--zama-yellow-bright);
+        /* ... */
+      }
+    }
+    ```
+
+    <Tip>
+    Use HSL format (`hue saturation% lightness%`) for easy color variations.
+    </Tip>
+  </Step>
+
+  <Step title="Update Tailwind Config">
+    Customize extended colors in `tailwind.config.ts`:
+
+    ```typescript tailwind.config.ts
+    export default {
+      theme: {
+        extend: {
+          colors: {
+            // Rename from 'zama' to your brand
+            brand: {
+              yellow: "hsl(var(--zama-yellow))",
+              'yellow-bright': "hsl(var(--zama-yellow-bright))",
+              // Add new colors
+              blue: "hsl(210 100% 50%)",
+              purple: "hsl(270 100% 50%)",
+            },
+          },
+        },
+      },
+    };
+    ```
+
+    Then use in components:
+
+    ```tsx
+    <div className="bg-brand-blue text-white">Custom color</div>
+    ```
+  </Step>
+
+  <Step title="Update Semantic Colors">
+    Adjust component-specific colors:
+
+    ```css
+    :root {
+      --sidebar-background: 220 13% 98%;  /* Light gray */
+      --sidebar-primary: var(--brand-color);
+      
+      --success: 142 76% 36%;   /* Green for completed */
+      --warning: 38 92% 50%;    /* Orange for in-progress */
+      --destructive: 0 84% 60%; /* Red for errors */
+    }
+    ```
+  </Step>
+</Steps>
+
+### Typography
+
+<Steps>
+  <Step title="Change Font Family">
+    Update font declarations in `index.html` and `tailwind.config.ts`:
+
+    **Load Custom Font** (`index.html`):
+    ```html
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    ```
+
+    **Configure Tailwind** (`tailwind.config.ts`):
+    ```typescript
+    fontFamily: {
+      display: ['Inter', 'system-ui', 'sans-serif'],
+      body: ['Inter', 'system-ui', 'sans-serif'],
+      mono: ['JetBrains Mono', 'Monaco', 'monospace'],
+    },
+    ```
+
+    **Apply Globally** (`index.css`):
+    ```css
+    @layer base {
+      body {
+        @apply font-body;
+      }
+      
+      h1, h2, h3, h4, h5, h6 {
+        @apply font-display;
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Customize Font Sizes">
+    Modify the type scale in `tailwind.config.ts`:
+
+    ```typescript
+    fontSize: {
+      'xs': ['0.75rem', { lineHeight: '1rem' }],
+      'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+      'base': ['1rem', { lineHeight: '1.5rem' }],
+      'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+      'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+      '2xl': ['1.5rem', { lineHeight: '2rem' }],
+      '3xl': ['2rem', { lineHeight: '2.25rem' }],   // Increased
+      '4xl': ['2.5rem', { lineHeight: '2.75rem' }], // Increased
+    },
+    ```
+  </Step>
+</Steps>
+
+### Logo and Branding Assets
+
+<Steps>
+  <Step title="Replace Favicon">
+    Replace `public/favicon.ico` with your logo:
+
+    ```bash
+    # Add your logo files
+    public/
+      favicon.ico       # 16x16, 32x32 ICO
+      logo.svg          # Vector logo
+      logo-192.png      # 192x192 PNG
+      logo-512.png      # 512x512 PNG
+    ```
+
+    Update `index.html`:
+    ```html
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" sizes="192x192" href="/logo-192.png" />
+    ```
+  </Step>
+
+  <Step title="Add Logo to AppBar">
+    Edit `src/components/layout/AppBar.tsx`:
+
+    ```tsx src/components/layout/AppBar.tsx
+    import Logo from '@/assets/logo.svg';
+
+    export function AppBar({ onMenuToggle, isDarkMode, onThemeToggle }) {
+      return (
+        <header className="border-b">
+          <div className="flex items-center gap-4 px-4 py-3">
+            <img src={Logo} alt="Your Brand" className="h-8 w-auto" />
+            <h1 className="text-xl font-bold">Your Bootcamp Name</h1>
+            {/* ... rest of AppBar */}
+          </div>
+        </header>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Update Meta Tags">
+    Customize SEO and social sharing in `index.html`:
+
+    ```html
+    <title>Your Bootcamp - Learn FHE Development</title>
+    <meta name="description" content="Your custom description" />
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Your Bootcamp Name" />
+    <meta property="og:image" content="https://yourdomain.com/og-image.png" />
+    <meta property="og:url" content="https://yourdomain.com" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:site" content="@yourhandle" />
+    <meta name="twitter:image" content="https://yourdomain.com/twitter-card.png" />
+    ```
+  </Step>
+</Steps>
+
+## Curriculum Customization
+
+### Modify Existing Content
+
+<Steps>
+  <Step title="Edit Curriculum Data">
+    All curriculum content is in `src/data/curriculum.ts`:
+
+    ```typescript src/data/curriculum.ts
+    export const curriculum: Curriculum = {
+      title: 'Your Custom Bootcamp Title',
+      description: 'Your custom description',
+      targetAudience: [
+        'Your target audience 1',
+        'Your target audience 2',
+      ],
+      prerequisites: [
+        'Your prerequisite 1',
+        'Your prerequisite 2',
+      ],
+      weeks: [
+        // Week definitions...
+      ],
+    };
+    ```
+  </Step>
+
+  <Step title="Customize a Week">
+    Modify week structure:
+
+    ```typescript
+    {
+      id: 'week-1',
+      number: 1,
+      title: 'Your Week 1 Title',
+      subtitle: 'Your subtitle',
+      objectives: [
+        'Learning objective 1',
+        'Learning objective 2',
+      ],
+      estimatedHours: 10,  // Adjust time estimate
+      milestone: 'Your completion milestone',
+      lessons: [/* lesson array */],
+      homework: {/* homework object */},
+    }
+    ```
+  </Step>
+
+  <Step title="Customize a Lesson">
+    Edit lesson content:
+
+    ```typescript
+    {
+      id: 'custom-lesson',
+      title: 'Your Lesson Title',
+      description: 'Your lesson description',
+      estimatedMinutes: 45,
+      icon: 'BookOpen',  // Lucide icon name
+      objectives: [
+        'Objective 1',
+        'Objective 2',
+      ],
+      instructorNotes: [
+        'Teaching tip 1',
+        'Teaching tip 2',
+      ],
+      sections: [
+        {
+          id: 'intro',
+          title: 'Introduction',
+          type: 'text',
+          content: [
+            'Paragraph 1 with **markdown** formatting',
+            'Paragraph 2 with `code` inline',
+          ],
+          keyPoints: ['Key point 1', 'Key point 2'],
+          tips: ['Pro tip 1', 'Pro tip 2'],
+        },
+        // More sections...
+      ],
+    }
+    ```
+  </Step>
+
+  <Step title="Add Code Examples">
+    Include code snippets:
+
+    ```typescript
+    {
+      id: 'code-demo',
+      title: 'Code Example',
+      type: 'code',
+      content: ['Explanation of the code'],
+      code: {
+        language: 'solidity',
+        filename: 'MyContract.sol',
+        description: 'A sample FHEVM contract',
+        code: `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+contract MyContract {
+    // Your code here
+}`,
+      },
+    }
+    ```
+
+    Supported languages: `solidity`, `typescript`, `javascript`, `bash`, `json`
+  </Step>
+
+  <Step title="Add Video Content">
+    Embed YouTube videos:
+
+    ```typescript
+    {
+      id: 'video-tutorial',
+      title: 'Video Tutorial',
+      type: 'video',
+      content: ['Description of what students will learn'],
+      videoId: 'YOUR_YOUTUBE_VIDEO_ID',  // From youtube.com/watch?v=...
+    }
+    ```
+  </Step>
+
+  <Step title="Add Diagrams">
+    Use Mermaid for diagrams:
+
+    ```typescript
+    {
+      id: 'architecture-diagram',
+      title: 'System Architecture',
+      type: 'diagram',
+      content: ['Diagram explanation'],
+      diagramCode: `graph TD
+        A[User] -->|Encrypts| B[Smart Contract]
+        B -->|Processes| C[FHE Coprocessor]
+        C -->|Returns| B
+        B -->|Decrypts| A`,
+    }
+    ```
+  </Step>
+</Steps>
+
+### Add New Interactive Components
+
+<Steps>
+  <Step title="Create Component">
+    Build a new interactive component in `src/components/lesson/`:
+
+    ```tsx src/components/lesson/CustomInteractive.tsx
+    import { Card } from '@/components/ui/card';
+    import { Button } from '@/components/ui/button';
+    
+    export function CustomInteractive() {
+      const [state, setState] = useState(0);
+    
+      return (
+        <Card className="p-6">
+          <h3 className="text-lg font-semibold mb-4">Interactive Demo</h3>
+          <p>Current value: {state}</p>
+          <Button onClick={() => setState(state + 1)}>Increment</Button>
+        </Card>
+      );
+    }
+    ```
+  </Step>
+
+  <Step title="Register Component">
+    Add to the component registry in `src/components/lesson/LessonSection.tsx`:
+
+    ```tsx src/components/lesson/LessonSection.tsx
+    import { CustomInteractive } from './CustomInteractive';
+
+    const componentMap: Record<string, React.ComponentType> = {
+      'fhe-basics-tabs': FHEBasicsTabs,
+      'voting-simulator': VotingSimulator,
+      'custom-interactive': CustomInteractive,  // Add here
+    };
+    ```
+  </Step>
+
+  <Step title="Reference in Curriculum">
+    Use in lesson sections:
+
+    ```typescript
+    {
+      id: 'interactive-section',
+      title: 'Try It Yourself',
+      type: 'interactive',
+      content: ['Instructions for the interactive component'],
+      componentId: 'custom-interactive',  // Matches registry key
+    }
+    ```
+  </Step>
+</Steps>
+
+### Customize Quizzes
+
+<Steps>
+  <Step title="Edit Quiz Questions">
+    Modify quiz content in lesson definitions:
+
+    ```typescript
+    quiz: {
+      title: 'Your Quiz Title',
+      description: 'Test your understanding',
+      passingScore: 70,  // Percentage required to pass
+      questions: [
+        {
+          id: 1,
+          question: 'What is FHE?',
+          options: [
+            'Fully Homomorphic Encryption',
+            'Fast Hash Encoding',
+            'Federated Hash Exchange',
+            'Fixed Header Encoding',
+          ],
+          correctAnswer: 0,  // Index of correct option
+          explanation: 'FHE stands for Fully Homomorphic Encryption, which allows computation on encrypted data.',
+          category: 'fundamentals',
+        },
+        // More questions...
+      ],
+    }
+    ```
+  </Step>
+
+  <Step title="Adjust Passing Score">
+    Change the required score to pass:
+
+    ```typescript
+    passingScore: 80,  // Students must get 80% or higher
+    ```
+  </Step>
+</Steps>
+
+### Customize Homework
+
+<Steps>
+  <Step title="Edit Homework Structure">
+    Modify homework assignments:
+
+    ```typescript
+    homework: {
+      id: 'week-1-hw',
+      title: 'Your Homework Title',
+      description: 'What students will build',
+      estimatedHours: 5,
+      requirements: [
+        {
+          id: 'req-1',
+          title: 'Requirement 1',
+          description: 'Detailed description',
+          type: 'code',  // 'code' | 'written' | 'practical' | 'screenshot'
+        },
+        {
+          id: 'req-2',
+          title: 'Requirement 2',
+          description: 'Detailed description',
+          type: 'practical',
+        },
+      ],
+      submissionInstructions: [
+        'Step 1 for submission',
+        'Step 2 for submission',
+      ],
+      starterCode: {
+        language: 'solidity',
+        filename: 'Starter.sol',
+        description: 'Starter code template',
+        code: `// Your starter code`,
+      },
+      solutionCode: {
+        language: 'solidity',
+        filename: 'Solution.sol',
+        description: 'Reference solution',
+        code: `// Your solution code`,
+      },
+      gradingCriteria: [
+        {
+          name: 'Functionality',
+          weight: 50,  // Percentage of total grade
+          description: 'Code works correctly',
+          rubric: [
+            { score: 'Excellent', description: 'All features work perfectly' },
+            { score: 'Good', description: 'Most features work' },
+            { score: 'Needs Improvement', description: 'Some features broken' },
+          ],
+        },
+        {
+          name: 'Code Quality',
+          weight: 30,
+          description: 'Clean, readable code',
+          rubric: [/* ... */],
+        },
+        {
+          name: 'Documentation',
+          weight: 20,
+          description: 'Well-documented code',
+          rubric: [/* ... */],
+        },
+      ],
+    }
+    ```
+  </Step>
+</Steps>
+
+## Feature Configuration
+
+### Learning Modes
+
+Toggle between self-paced and cohort modes in `src/state/bootcampStore.ts`:
+
+```typescript src/state/bootcampStore.ts
+// Default learning mode
+learningMode: 'self-paced',  // or 'cohort'
+```
+
+**Self-Paced Mode**: All content unlocked immediately
+**Cohort Mode**: Sequential progression, previous content must be completed
+
+### Instructor Mode
+
+Default instructor mode state:
+
+```typescript
+instructorMode: false,  // true to enable by default
+```
+
+Instructor mode shows teaching notes and facilitation tips throughout lessons.
+
+### Progress Tracking
+
+Customize progress persistence:
+
+```typescript
+persist(
+  (set, get) => ({ /* store definition */ }),
+  {
+    name: 'your-bootcamp-progress',  // localStorage key
+    partialize: (state) => ({
+      // Choose what to persist
+      learningMode: state.learningMode,
+      instructorMode: state.instructorMode,
+      currentWeekId: state.currentWeekId,
+      currentLessonId: state.currentLessonId,
+      progress: state.progress,
+    }),
+  }
+)
+```
+
+### Internationalization
+
+Add new languages in `src/components/layout/AppBar.tsx`:
+
+```typescript
+const LANGUAGES = [
+  { code: 'en', label: 'English', countryCode: 'us', flagEmoji: '🇺🇸' },
+  { code: 'fr', label: 'Français', countryCode: 'fr', flagEmoji: '🇫🇷' },
+  { code: 'es', label: 'Español', countryCode: 'es', flagEmoji: '🇪🇸' },  // Add
+  { code: 'de', label: 'Deutsch', countryCode: 'de', flagEmoji: '🇩🇪' },  // Add
+];
+```
+
+Create translation files in `src/i18n/` (requires setting up i18next).
+
+## Advanced Customization
+
+### Custom Animations
+
+Add custom animations in `tailwind.config.ts`:
+
+```typescript
+keyframes: {
+  'custom-fade': {
+    '0%': { opacity: '0', transform: 'scale(0.95)' },
+    '100%': { opacity: '1', transform: 'scale(1)' },
+  },
+},
+animation: {
+  'custom-fade': 'custom-fade 0.3s ease-out',
+},
+```
+
+Use in components:
+
+```tsx
+<div className="animate-custom-fade">Content</div>
+```
+
+### Custom UI Components
+
+The bootcamp uses 50+ shadcn/ui components. Customize any component:
+
+```bash
+npx shadcn-ui@latest add button
+```
+
+Then edit `src/components/ui/button.tsx` to match your design system.
+
+### Custom Routes
+
+Add new pages in `src/App.tsx`:
+
+```tsx
+import YourCustomPage from '@/pages/YourCustomPage';
+
+<Routes>
+  <Route path="/" element={<Dashboard />} />
+  {/* ... existing routes */}
+  <Route path="/your-page" element={<YourCustomPage />} />
+</Routes>
+```
+
+## Testing Customizations
+
+<Steps>
+  <Step title="Test Locally">
+    ```bash
+    npm run dev
+    ```
+
+    Verify changes at `http://localhost:8080`
+  </Step>
+
+  <Step title="Test Dark Mode">
+    Toggle theme and verify colors work in both light and dark modes
+  </Step>
+
+  <Step title="Test Responsive Design">
+    Use browser DevTools to test mobile, tablet, and desktop layouts
+  </Step>
+
+  <Step title="Test Progress Persistence">
+    Complete a lesson, refresh the page, and verify progress is saved
+  </Step>
+
+  <Step title="Test Build">
+    ```bash
+    npm run build
+    npm run preview
+    ```
+
+    Ensure production build works correctly
+  </Step>
+</Steps>
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Keep It Consistent" icon="check">
+    Maintain consistent styling across all custom components. Use the existing design system rather than adding new patterns.
+  </Card>
+
+  <Card title="Test Thoroughly" icon="flask">
+    Test all customizations in both light and dark modes, and across different screen sizes.
+  </Card>
+
+  <Card title="Document Changes" icon="book">
+    Keep a changelog of customizations for future reference and team members.
+  </Card>
+
+  <Card title="Version Control" icon="git-branch">
+    Commit changes frequently with clear messages. Use branches for major customizations.
+  </Card>
+</CardGroup>
+
+<Warning>
+Avoid modifying core framework files (Vite config, routing logic, state management) unless necessary. Focus customizations on content, styling, and components.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deploy Your Bootcamp" icon="rocket" href="/guides/deployment">
+    Build and deploy your customized bootcamp to production
+  </Card>
+
+  <Card title="Instructor Setup" icon="users" href="/guides/instructor-setup">
+    Configure the platform for teaching a cohort
+  </Card>
+</CardGroup>

@@ -1,0 +1,177 @@
+---
+title: 'Quiz'
+description: 'Quiz structure with questions, answers, and grading'
+icon: 'circle-check'
+---
+
+## Overview
+
+Quiz types define interactive assessments with multiple-choice questions, correct answers, and explanations.
+
+## Types
+
+### Quiz
+
+Represents a quiz attached to a lesson.
+
+<ResponseField name="title" type="string" required>
+  Quiz title
+  
+  **Example:** "FHE Fundamentals Quiz", "First Contract Quiz"
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Brief description of what the quiz covers
+  
+  **Example:** "Test your understanding of FHE and FHEVM basics"
+</ResponseField>
+
+<ResponseField name="questions" type="QuizQuestion[]" required>
+  Array of quiz questions
+</ResponseField>
+
+<ResponseField name="passingScore" type="number" required>
+  Minimum percentage required to pass (0-100)
+  
+  **Example:** 70 (70% required to pass)
+</ResponseField>
+
+---
+
+### QuizQuestion
+
+A single multiple-choice question.
+
+<ResponseField name="id" type="number | string" required>
+  Unique identifier for the question
+</ResponseField>
+
+<ResponseField name="question" type="string" required>
+  The question text
+  
+  **Example:** "What does FHE stand for?"
+</ResponseField>
+
+<ResponseField name="options" type="string[]" required>
+  Array of answer choices (typically 4 options)
+  
+  **Example:**
+  ```typescript
+  [
+    "Fully Homomorphic Encryption",
+    "Fast Hash Encryption",
+    "Federated Hash Encryption",
+    "Fully Hybrid Encryption"
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="correctAnswer" type="number" required>
+  Zero-based index of the correct answer in the options array
+  
+  **Example:** 0 (first option is correct)
+</ResponseField>
+
+<ResponseField name="explanation" type="string" required>
+  Explanation shown after answering, clarifying why the correct answer is right
+  
+  **Example:** "FHE stands for Fully Homomorphic Encryption, which allows computation on encrypted data without decrypting it."
+</ResponseField>
+
+<ResponseField name="category" type="string" optional>
+  Optional category for grouping questions
+  
+  **Example:** "fhe_concept", "access_control", "operations", "testing"
+</ResponseField>
+
+---
+
+## Type Definitions
+
+```typescript
+export interface Quiz {
+  title: string;
+  description: string;
+  questions: QuizQuestion[];
+  passingScore: number; // percentage
+}
+
+export interface QuizQuestion {
+  id: number | string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
+  explanation: string;
+  category?: string;
+}
+```
+
+## Usage Example
+
+```typescript
+import { curriculum } from '@/data/curriculum';
+
+// Access quiz from first lesson
+const firstLesson = curriculum.weeks[0].lessons[0];
+const quiz = firstLesson.quiz;
+
+if (quiz) {
+  console.log(quiz.title); // "FHE Fundamentals Quiz"
+  console.log(`Passing score: ${quiz.passingScore}%`);
+  console.log(`Total questions: ${quiz.questions.length}`);
+  
+  // Display first question
+  const q = quiz.questions[0];
+  console.log(`Q${q.id}: ${q.question}`);
+  
+  q.options.forEach((option, index) => {
+    const marker = index === q.correctAnswer ? '✓' : ' ';
+    console.log(`${marker} ${index + 1}. ${option}`);
+  });
+  
+  console.log(`Explanation: ${q.explanation}`);
+  console.log(`Category: ${q.category}`);
+}
+
+// Calculate score
+function gradeQuiz(userAnswers: number[]): number {
+  if (!quiz) return 0;
+  
+  const correct = quiz.questions.filter(
+    (q, idx) => q.correctAnswer === userAnswers[idx]
+  ).length;
+  
+  const score = (correct / quiz.questions.length) * 100;
+  const passed = score >= quiz.passingScore;
+  
+  return score;
+}
+
+// Example: User answered [0, 2, 1, 0, 1]
+const score = gradeQuiz([0, 2, 1, 0, 1]);
+console.log(`Score: ${score}%`);
+```
+
+## Quiz Question Example
+
+```typescript
+const exampleQuestion: QuizQuestion = {
+  id: 1,
+  question: "What does FHE stand for?",
+  options: [
+    "Fully Homomorphic Encryption",
+    "Fast Hash Encryption",
+    "Federated Hash Encryption",
+    "Fully Hybrid Encryption"
+  ],
+  correctAnswer: 0,
+  explanation: "FHE stands for Fully Homomorphic Encryption, which allows computation on encrypted data without decrypting it.",
+  category: "fhe_concept"
+};
+```
+
+## Related Types
+
+- [Lesson](/api/types/lesson) - Lessons containing quizzes
+- [Homework](/api/types/homework) - Weekly graded assignments
+- [Curriculum](/api/types/curriculum) - Overall curriculum structure

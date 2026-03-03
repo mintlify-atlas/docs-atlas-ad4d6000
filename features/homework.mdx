@@ -1,0 +1,484 @@
+---
+title: Homework Assignments
+description: Understanding homework structure, requirements, grading rubrics, and starter/solution code templates
+icon: 'clipboard'
+---
+
+## Overview
+
+Each week concludes with a homework assignment that synthesizes the week's lessons into a practical deliverable. Homework includes requirements checklists, grading rubrics, submission instructions, and optional code templates.
+
+<Info>
+Homework is **week-scoped** - each `Week` has exactly one `Homework` object.
+</Info>
+
+## Homework Data Structure
+
+### Homework Interface
+
+```typescript src/data/curriculum.ts
+export interface Homework {
+  id: string;
+  title: string;
+  description: string;
+  requirements: Requirement[];         // Checklist items
+  gradingCriteria: GradingCriterion[]; // Rubric
+  starterCode?: CodeSnippet;           // Optional starter template
+  solutionCode?: CodeSnippet;          // Optional solution key
+  estimatedHours: number;
+  submissionInstructions: string[];
+}
+```
+
+### Requirement Structure
+
+```typescript src/data/curriculum.ts
+export interface Requirement {
+  id: string;
+  title: string;
+  description: string;
+  type: 'code' | 'written' | 'practical' | 'screenshot';
+}
+```
+
+### Grading Criterion Structure
+
+```typescript src/data/curriculum.ts
+export interface GradingCriterion {
+  name: string;
+  weight: number;  // Percentage (must sum to 100)
+  description: string;
+  rubric: { score: string; description: string }[];
+}
+```
+
+## Real Example: Week 1 Homework
+
+```typescript src/data/curriculum.ts
+homework: {
+  id: 'hw-1',
+  title: 'FHE Concepts & Setup Verification',
+  description: 'Demonstrate your understanding of FHE fundamentals and verify your development environment is fully configured.',
+  estimatedHours: 3,
+  
+  requirements: [
+    {
+      id: 'hw1-q1',
+      title: 'Conceptual Questions',
+      description: 'Answer 10 written questions about FHE, FHEVM, and the Zama Protocol. Submit as a markdown file.',
+      type: 'written',
+    },
+    {
+      id: 'hw1-q2',
+      title: 'Environment Verification',
+      description: 'Submit screenshots showing: Node.js version, successful Hardhat compilation, and MetaMask connected to Sepolia.',
+      type: 'screenshot',
+    },
+    {
+      id: 'hw1-q3',
+      title: 'Type Selection Exercise',
+      description: 'Given 5 scenarios, choose the appropriate FHEVM encrypted type and justify your choice in 1-2 sentences each.',
+      type: 'written',
+    },
+    {
+      id: 'hw1-q4',
+      title: 'Architecture Diagram',
+      description: 'Draw (or write in mermaid syntax) the FHEVM architecture diagram from memory, labeling each component and data flow.',
+      type: 'practical',
+    },
+  ],
+  
+  gradingCriteria: [
+    {
+      name: 'Conceptual Understanding',
+      weight: 40,
+      description: 'Accuracy and depth of answers to conceptual questions',
+      rubric: [
+        { score: 'Excellent (90-100%)', description: 'All answers correct with additional insight' },
+        { score: 'Good (70-89%)', description: 'Most answers correct with minor gaps' },
+        { score: 'Needs Work (50-69%)', description: 'Several incorrect answers, fundamental gaps' },
+        { score: 'Incomplete (<50%)', description: 'Missing answers or major misunderstandings' },
+      ],
+    },
+    {
+      name: 'Setup Verification',
+      weight: 40,
+      description: 'Evidence of a working development environment',
+      rubric: [
+        { score: 'Excellent (90-100%)', description: 'All screenshots present, tools at correct versions' },
+        { score: 'Good (70-89%)', description: 'Most setup complete, minor version differences' },
+        { score: 'Needs Work (50-69%)', description: 'Partial setup, some tools missing' },
+        { score: 'Incomplete (<50%)', description: 'Environment not set up' },
+      ],
+    },
+    {
+      name: 'Bonus Exploration',
+      weight: 20,
+      description: 'Extra credit for exploring beyond the lesson material',
+      rubric: [
+        { score: 'Excellent (90-100%)', description: 'Explored Zama docs, tried additional examples' },
+        { score: 'Good (70-89%)', description: 'Some exploration beyond requirements' },
+        { score: 'Baseline (50-69%)', description: 'Met minimum requirements only' },
+      ],
+    },
+  ],
+  
+  submissionInstructions: [
+    'Create a folder named "homework-1-[yourname]"',
+    'Include a file "answers.md" with your written responses',
+    'Include a folder "screenshots/" with your verification images',
+    'Zip the folder and submit — [Submission portal coming soon]',
+  ],
+  
+  starterCode: {
+    language: 'markdown',
+    code: `# Homework 1: FHE Concepts & Setup Verification
+## Student Name: [Your Name]
+
+## Part 1: Conceptual Questions (40%)
+### Q1. What does FHE stand for and what makes it "fully" homomorphic?
+> Your answer here...
+
+### Q2. Name three real-world use cases for FHEVM...
+> Your answer here...`,
+    filename: 'homework-1-template.md',
+  },
+  
+  solutionCode: {
+    language: 'markdown',
+    code: `# Homework 1: Solution Key
+
+## Part 1: Conceptual Questions
+### Q1. FHE = Fully Homomorphic Encryption.
+"Fully" means it supports BOTH addition AND multiplication on encrypted data...`,
+    filename: 'homework-1-solution.md',
+  },
+}
+```
+
+## Homework Page UI
+
+The homework experience is implemented in `HomeworkPage.tsx`:
+
+```tsx src/pages/HomeworkPage.tsx
+import HomeworkPage from '@/pages/HomeworkPage';
+
+// Route: /week/:weekId/homework
+// Example: /week/week-1/homework
+```
+
+### Key Features
+
+<Steps>
+  <Step title="Requirements Checklist">
+    Interactive checkboxes for each requirement with visual feedback:
+    ```tsx
+    {hw.requirements.map((req) => (
+      <div className={isChecked ? 'border-green-500/30 bg-green-500/5' : 'border-border'}>
+        <Checkbox
+          checked={checklist[req.id]}
+          onCheckedChange={() => toggleHomeworkChecklistItem(weekId, req.id)}
+        />
+        <div>
+          <h4>{req.title}</h4>
+          <Badge variant="outline">{req.type}</Badge>
+          <p>{req.description}</p>
+        </div>
+      </div>
+    ))}
+    ```
+  </Step>
+  
+  <Step title="Code Templates">
+    Tabbed view of starter and solution code:
+    ```tsx
+    {hw.starterCode && hw.solutionCode && (
+      <CodeTemplate
+        starterCode={hw.starterCode}
+        solutionCode={hw.solutionCode}
+        description="Download starter code and compare with solution"
+      />
+    )}
+    ```
+  </Step>
+  
+  <Step title="Grading Rubric">
+    Detailed rubric display with weighted criteria:
+    ```tsx
+    <GradingRubric criteria={hw.gradingCriteria} />
+    ```
+  </Step>
+  
+  <Step title="Submission Instructions">
+    Numbered list with special handling for "coming soon" items:
+    ```tsx
+    {hw.submissionInstructions.map((instruction, i) => (
+      <li>
+        <span>{i + 1}</span>
+        {instruction.includes('[Submission portal coming soon]') && (
+          <Badge variant="outline">Coming Soon</Badge>
+        )}
+      </li>
+    ))}
+    ```
+  </Step>
+</Steps>
+
+## Requirements Checklist Component
+
+Each requirement renders as an interactive card:
+
+```tsx src/pages/HomeworkPage.tsx
+{hw.requirements.map((req) => {
+  const isChecked = checklist[req.id] ?? false;
+  
+  return (
+    <div
+      key={req.id}
+      className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${
+        isChecked
+          ? 'border-green-500/30 bg-green-500/5'
+          : 'border-border'
+      }`}
+    >
+      <Checkbox
+        checked={isChecked}
+        onCheckedChange={() => {
+          toggleHomeworkChecklistItem(weekId, req.id);
+          if (hwStatus === 'not-started') {
+            updateHomeworkStatus(weekId, 'in-progress');
+          }
+        }}
+      />
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <h4 className="font-medium">{req.title}</h4>
+          <Badge variant="outline" className="capitalize">{req.type}</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">{req.description}</p>
+      </div>
+    </div>
+  );
+})}
+```
+
+<Tip>
+Checking the first requirement automatically transitions homework status from "not-started" to "in-progress".
+</Tip>
+
+## Grading Rubric Component
+
+The rubric is displayed in an expandable card format:
+
+```tsx src/components/homework/GradingRubric.tsx
+export const GradingRubric: React.FC<GradingRubricProps> = ({ criteria }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Award className="h-5 w-5 text-primary" />
+          Grading Rubric
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {criteria.map((criterion) => (
+          <div key={criterion.name} className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="font-medium">{criterion.name}</h4>
+              <Badge variant="outline">{criterion.weight}%</Badge>
+            </div>
+            <p className="text-sm text-muted-foreground">{criterion.description}</p>
+            <div className="grid gap-2">
+              {criterion.rubric.map((level, j) => (
+                <div
+                  key={j}
+                  className={`p-3 rounded-lg border ${
+                    j === 0 ? 'border-green-500/20 bg-green-500/5' :
+                    j === 1 ? 'border-blue-500/20 bg-blue-500/5' :
+                    j === 2 ? 'border-amber-500/20 bg-amber-500/5' :
+                    'border-red-500/20 bg-red-500/5'
+                  }`}
+                >
+                  <span className="font-medium">{level.score}:</span>{' '}
+                  <span className="text-muted-foreground">{level.description}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
+```
+
+**Rubric levels are color-coded:**
+- Level 0 (top): Green (Excellent)
+- Level 1: Blue (Good)
+- Level 2: Amber (Needs Work)
+- Level 3+: Red (Incomplete)
+
+## Code Templates Component
+
+Starter and solution code are displayed in tabs:
+
+```tsx src/components/homework/CodeTemplate.tsx
+export const CodeTemplate: React.FC<CodeTemplateProps> = ({
+  starterCode,
+  solutionCode,
+  description,
+}) => {
+  const [showSolution, setShowSolution] = useState(false);
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileCode className="h-5 w-5" />
+          Code Templates
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="starter">
+          <TabsList>
+            <TabsTrigger value="starter">
+              <Code className="h-3 w-3 mr-2" />
+              Starter Code
+            </TabsTrigger>
+            <TabsTrigger value="solution" onClick={() => setShowSolution(true)}>
+              <Check className="h-3 w-3 mr-2" />
+              Solution
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="starter">
+            <CodeBlock code={starterCode.code} language={starterCode.language} />
+          </TabsContent>
+          
+          <TabsContent value="solution">
+            {showSolution ? (
+              <CodeBlock code={solutionCode.code} language={solutionCode.language} />
+            ) : (
+              <div className="p-8 text-center border-dashed">
+                Click the Solution tab to reveal the answer.
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
+```
+
+<Warning>
+Solutions are hidden by default and only revealed when the user clicks the "Solution" tab. This prevents accidental spoilers.
+</Warning>
+
+## Homework Status Tracking
+
+Homework progresses through four states:
+
+```typescript src/state/bootcampStore.ts
+export type HomeworkStatus = 'not-started' | 'in-progress' | 'submitted' | 'graded';
+
+export interface HomeworkProgress {
+  status: HomeworkStatus;
+  checklist: Record<string, boolean>;  // requirement.id → checked
+  submittedAt?: string;
+  grade?: number;
+}
+```
+
+### Status Transitions
+
+<Steps>
+  <Step title="Not Started → In Progress">
+    Triggered when user checks the first requirement.
+  </Step>
+  
+  <Step title="In Progress → Submitted">
+    User clicks "Mark as Submitted" (requires all checklist items checked).
+    ```tsx
+    <Button
+      onClick={() => updateHomeworkStatus(weekId, 'submitted')}
+      disabled={!allChecked}
+    >
+      <CheckCircle className="h-4 w-4" />
+      Mark as Submitted
+    </Button>
+    ```
+  </Step>
+  
+  <Step title="Submitted → Graded">
+    Manual update by instructor (not yet implemented in UI).
+  </Step>
+</Steps>
+
+### Progress Store Implementation
+
+```typescript src/state/bootcampStore.ts
+updateHomeworkStatus: (weekId: string, status: HomeworkStatus) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]) {
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        homework: {
+          ...newProgress[weekId].homework,
+          status,
+          ...(status === 'submitted' ? { submittedAt: new Date().toISOString() } : {}),
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+
+toggleHomeworkChecklistItem: (weekId: string, itemId: string) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    const currentVal = newProgress[weekId].homework.checklist[itemId] || false;
+    newProgress[weekId] = {
+      ...newProgress[weekId],
+      homework: {
+        ...newProgress[weekId].homework,
+        checklist: {
+          ...newProgress[weekId].homework.checklist,
+          [itemId]: !currentVal,
+        },
+      },
+    };
+    return { progress: newProgress };
+  }),
+```
+
+## Best Practices for Homework Design
+
+<CardGroup cols={2}>
+  <Card title="Clear Requirements" icon="list-checks">
+    Each requirement should be **actionable** and **verifiable**. Avoid vague language like "understand" - use "write", "deploy", "submit".
+  </Card>
+  
+  <Card title="Balanced Rubrics" icon="scale">
+    Weights should sum to **100%**. Major criteria should be 30-50%, minor ones 10-20%.
+  </Card>
+  
+  <Card title="Realistic Time Estimates" icon="clock">
+    Test the homework yourself. Multiply your time by **2-3x** for students.
+  </Card>
+  
+  <Card title="Progressive Difficulty" icon="trending-up">
+    Week 1 should be conceptual/setup. Week 4 should be a production-ready deliverable.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Progress Tracking" icon="chart-line" href="./progress-tracking">
+    See how homework completion feeds into overall progress
+  </Card>
+  <Card title="Instructor Mode" icon="graduation-cap" href="./instructor-mode">
+    Learn about grading workflows and facilitation
+  </Card>
+</CardGroup>

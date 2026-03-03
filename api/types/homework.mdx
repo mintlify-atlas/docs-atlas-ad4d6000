@@ -1,0 +1,269 @@
+---
+title: 'Homework'
+description: 'Homework assignments with requirements and grading criteria'
+icon: 'file-pen-line'
+---
+
+## Overview
+
+Homework types define weekly assignments with detailed requirements, grading rubrics, and starter/solution code.
+
+## Types
+
+### Homework
+
+Represents a weekly homework assignment.
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the homework
+  
+  **Example:** "hw-1", "hw-2"
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Homework title
+  
+  **Example:** "FHE Concepts & Setup Verification", "Build a Confidential Counter"
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Overview of what students need to accomplish
+  
+  **Example:** "Demonstrate your understanding of FHE fundamentals and verify your development environment is fully configured."
+</ResponseField>
+
+<ResponseField name="requirements" type="Requirement[]" required>
+  Array of specific requirements students must complete
+</ResponseField>
+
+<ResponseField name="gradingCriteria" type="GradingCriterion[]" required>
+  Array of grading criteria with weights and rubrics
+</ResponseField>
+
+<ResponseField name="starterCode" type="CodeSnippet" optional>
+  Optional starter code template for students
+</ResponseField>
+
+<ResponseField name="solutionCode" type="CodeSnippet" optional>
+  Optional solution code for instructor reference
+</ResponseField>
+
+<ResponseField name="estimatedHours" type="number" required>
+  Expected time commitment in hours
+</ResponseField>
+
+<ResponseField name="submissionInstructions" type="string[]" required>
+  Step-by-step submission instructions
+  
+  **Example:**
+  ```typescript
+  [
+    "Create a folder named 'homework-1-[yourname]'",
+    "Include a file 'answers.md' with your written responses",
+    "Zip the folder and submit"
+  ]
+  ```
+</ResponseField>
+
+---
+
+### Requirement
+
+A specific task within the homework assignment.
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the requirement
+  
+  **Example:** "hw1-q1", "hw2-contract"
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Requirement title
+  
+  **Example:** "Conceptual Questions", "EncryptedCounter Contract"
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Detailed description of what to deliver
+  
+  **Example:** "Answer 10 written questions about FHE, FHEVM, and the Zama Protocol. Submit as a markdown file."
+</ResponseField>
+
+<ResponseField name="type" type="'code' | 'written' | 'practical' | 'screenshot'" required>
+  The type of deliverable expected
+  
+  - **code**: Submit source code files
+  - **written**: Submit written explanations or essays
+  - **practical**: Perform a task (e.g., deploy a contract)
+  - **screenshot**: Submit screenshots as proof
+</ResponseField>
+
+---
+
+### GradingCriterion
+
+A grading dimension with weight and rubric.
+
+<ResponseField name="name" type="string" required>
+  Criterion name
+  
+  **Example:** "Conceptual Understanding", "Contract Correctness", "Test Quality"
+</ResponseField>
+
+<ResponseField name="weight" type="number" required>
+  Percentage weight of this criterion (total across all criteria should sum to 100)
+  
+  **Example:** 40 (40% of total grade)
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  What this criterion evaluates
+  
+  **Example:** "Accuracy and depth of answers to conceptual questions"
+</ResponseField>
+
+<ResponseField name="rubric" type="{ score: string; description: string }[]" required>
+  Grading levels with score ranges and descriptions
+  
+  **Example:**
+  ```typescript
+  [
+    { 
+      score: "Excellent (90-100%)", 
+      description: "All answers correct with additional insight" 
+    },
+    { 
+      score: "Good (70-89%)", 
+      description: "Most answers correct with minor gaps" 
+    },
+    { 
+      score: "Needs Work (50-69%)", 
+      description: "Several incorrect answers, fundamental gaps" 
+    },
+    { 
+      score: "Incomplete (<50%)", 
+      description: "Missing answers or major misunderstandings" 
+    }
+  ]
+  ```
+</ResponseField>
+
+---
+
+## Type Definitions
+
+```typescript
+export interface Homework {
+  id: string;
+  title: string;
+  description: string;
+  requirements: Requirement[];
+  gradingCriteria: GradingCriterion[];
+  starterCode?: CodeSnippet;
+  solutionCode?: CodeSnippet;
+  estimatedHours: number;
+  submissionInstructions: string[];
+}
+
+export interface Requirement {
+  id: string;
+  title: string;
+  description: string;
+  type: 'code' | 'written' | 'practical' | 'screenshot';
+}
+
+export interface GradingCriterion {
+  name: string;
+  weight: number; // percentage
+  description: string;
+  rubric: { score: string; description: string }[];
+}
+```
+
+## Usage Example
+
+```typescript
+import { curriculum } from '@/data/curriculum';
+
+// Access homework for first week
+const homework = curriculum.weeks[0].homework;
+
+console.log(homework.title); // "FHE Concepts & Setup Verification"
+console.log(`Estimated time: ${homework.estimatedHours} hours`);
+
+// List all requirements
+homework.requirements.forEach((req, index) => {
+  console.log(`${index + 1}. ${req.title} (${req.type})`);
+  console.log(`   ${req.description}`);
+});
+
+// Display grading breakdown
+console.log('\nGrading Criteria:');
+homework.gradingCriteria.forEach((criterion) => {
+  console.log(`- ${criterion.name}: ${criterion.weight}%`);
+  console.log(`  ${criterion.description}`);
+  
+  criterion.rubric.forEach((level) => {
+    console.log(`  - ${level.score}: ${level.description}`);
+  });
+});
+
+// Show submission instructions
+console.log('\nSubmission:');
+homework.submissionInstructions.forEach((instruction, i) => {
+  console.log(`${i + 1}. ${instruction}`);
+});
+
+// Access starter code if available
+if (homework.starterCode) {
+  console.log('\nStarter Code:');
+  console.log(`Language: ${homework.starterCode.language}`);
+  console.log(`File: ${homework.starterCode.filename}`);
+}
+```
+
+## Grading Example
+
+```typescript
+interface StudentSubmission {
+  requirementId: string;
+  score: number; // 0-100
+}
+
+function calculateFinalGrade(
+  homework: Homework,
+  submissions: StudentSubmission[]
+): number {
+  let totalScore = 0;
+  
+  homework.gradingCriteria.forEach((criterion) => {
+    // Find matching submission
+    const submission = submissions.find(
+      (s) => s.requirementId === criterion.name
+    );
+    
+    if (submission) {
+      // Weight the score by criterion weight
+      totalScore += (submission.score * criterion.weight) / 100;
+    }
+  });
+  
+  return totalScore;
+}
+
+// Example usage
+const studentScores: StudentSubmission[] = [
+  { requirementId: "Conceptual Understanding", score: 95 },
+  { requirementId: "Setup Verification", score: 85 },
+  { requirementId: "Bonus Exploration", score: 75 }
+];
+
+const finalGrade = calculateFinalGrade(homework, studentScores);
+console.log(`Final Grade: ${finalGrade}%`);
+```
+
+## Related Types
+
+- [Curriculum](/api/types/curriculum) - Overall curriculum structure
+- [Lesson](/api/types/lesson) - Individual lessons
+- [CodeSnippet](/api/types/lesson#codesnippet) - Code examples in assignments

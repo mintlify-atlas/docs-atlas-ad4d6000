@@ -1,0 +1,521 @@
+---
+title: Progress Tracking
+description: Comprehensive progress persistence, completion tracking, analytics, and user dashboard features
+icon: 'chart-line'
+---
+
+## Overview
+
+The bootcamp tracks granular progress across lessons, quizzes, and homework. All progress is persisted to localStorage and displayed in a visual dashboard with charts, badges, and week-by-week breakdowns.
+
+<Info>
+Progress is managed by **Zustand** with the `persist` middleware, ensuring data survives page refreshes and browser sessions.
+</Info>
+
+## Progress Data Structure
+
+### State Interfaces
+
+```typescript src/state/bootcampStore.ts
+export interface LessonProgress {
+  completed: boolean;
+  quizScore?: number;
+  quizPassed?: boolean;
+  timeSpentMinutes: number;
+  completedAt?: string;  // ISO 8601 timestamp
+}
+
+export interface HomeworkProgress {
+  status: HomeworkStatus;  // 'not-started' | 'in-progress' | 'submitted' | 'graded'
+  checklist: Record<string, boolean>;  // requirement.id → checked
+  submittedAt?: string;
+  grade?: number;
+}
+
+export interface WeekProgress {
+  lessons: Record<string, LessonProgress>;  // lessonId → progress
+  homework: HomeworkProgress;
+}
+
+// Top-level state
+progress: Record<string, WeekProgress>;  // weekId → week progress
+```
+
+### Initial State Creation
+
+Progress structure is initialized from the curriculum:
+
+```typescript src/state/bootcampStore.ts
+function createInitialProgress(): Record<string, WeekProgress> {
+  const progress: Record<string, WeekProgress> = {};
+  
+  curriculum.weeks.forEach((week) => {
+    const lessons: Record<string, LessonProgress> = {};
+    
+    week.lessons.forEach((lesson) => {
+      lessons[lesson.id] = {
+        completed: false,
+        timeSpentMinutes: 0,
+      };
+    });
+    
+    progress[week.id] = {
+      lessons,
+      homework: {
+        status: 'not-started',
+        checklist: {},
+      },
+    };
+  });
+  
+  return progress;
+}
+```
+
+<Tip>
+This function runs **once** on first load. Subsequent visits load progress from localStorage.
+</Tip>
+
+## Progress Actions
+
+### Complete Lesson
+
+```typescript src/state/bootcampStore.ts
+completeLesson: (weekId: string, lessonId: string) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]?.lessons[lessonId]) {
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        lessons: {
+          ...newProgress[weekId].lessons,
+          [lessonId]: {
+            ...newProgress[weekId].lessons[lessonId],
+            completed: true,
+            completedAt: new Date().toISOString(),
+          },
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+```
+
+**Triggered when:**
+- User clicks "Complete & Continue" on a lesson
+- User passes a lesson quiz
+
+### Set Quiz Score
+
+```typescript src/state/bootcampStore.ts
+setQuizScore: (weekId: string, lessonId: string, score: number, passed: boolean) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]?.lessons[lessonId]) {
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        lessons: {
+          ...newProgress[weekId].lessons,
+          [lessonId]: {
+            ...newProgress[weekId].lessons[lessonId],
+            quizScore: score,
+            quizPassed: passed,
+          },
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+```
+
+### Update Homework Status
+
+```typescript src/state/bootcampStore.ts
+updateHomeworkStatus: (weekId: string, status: HomeworkStatus) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]) {
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        homework: {
+          ...newProgress[weekId].homework,
+          status,
+          ...(status === 'submitted' ? { submittedAt: new Date().toISOString() } : {}),
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+```
+
+### Toggle Homework Checklist Item
+
+```typescript src/state/bootcampStore.ts
+toggleHomeworkChecklistItem: (weekId: string, itemId: string) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]) {
+      const currentVal = newProgress[weekId].homework.checklist[itemId] || false;
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        homework: {
+          ...newProgress[weekId].homework,
+          checklist: {
+            ...newProgress[weekId].homework.checklist,
+            [itemId]: !currentVal,
+          },
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+```
+
+### Add Time Spent
+
+```typescript src/state/bootcampStore.ts
+addTimeSpent: (weekId: string, lessonId: string, minutes: number) =>
+  set((state) => {
+    const newProgress = { ...state.progress };
+    if (newProgress[weekId]?.lessons[lessonId]) {
+      newProgress[weekId] = {
+        ...newProgress[weekId],
+        lessons: {
+          ...newProgress[weekId].lessons,
+          [lessonId]: {
+            ...newProgress[weekId].lessons[lessonId],
+            timeSpentMinutes:
+              newProgress[weekId].lessons[lessonId].timeSpentMinutes + minutes,
+          },
+        },
+      };
+    }
+    return { progress: newProgress };
+  }),
+```
+
+<Note>
+Time tracking is not yet implemented in the UI, but the data structure supports it for future features.
+</Note>
+
+## Derived Getters
+
+The store provides computed progress metrics:
+
+### Week Progress
+
+```typescript src/state/bootcampStore.ts
+getWeekProgress: (weekId: string) => {
+  const state = get();
+  const weekData = state.progress[weekId];
+  if (!weekData) return { completed: 0, total: 0, percentage: 0 };
+  
+  const lessons = Object.values(weekData.lessons);
+  const completed = lessons.filter((l) => l.completed).length;
+  const total = lessons.length;
+  
+  return {
+    completed,
+    total,
+    percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
+},
+```
+
+**Usage:**
+```tsx
+const { completed, total, percentage } = getWeekProgress('week-1');
+// { completed: 2, total: 3, percentage: 67 }
+```
+
+### Overall Progress
+
+```typescript src/state/bootcampStore.ts
+getOverallProgress: () => {
+  const state = get();
+  const allIds = getAllLessonIds();
+  let completed = 0;
+  
+  allIds.forEach(({ weekId, lessonId }) => {
+    if (state.progress[weekId]?.lessons[lessonId]?.completed) {
+      completed++;
+    }
+  });
+  
+  const total = getTotalLessons();
+  return {
+    completed,
+    total,
+    percentage: total > 0 ? Math.round((completed / total) * 100) : 0,
+  };
+},
+```
+
+**Usage:**
+```tsx
+const { completed, total, percentage } = getOverallProgress();
+// { completed: 5, total: 12, percentage: 42 }
+```
+
+### Lesson/Week Completion Checks
+
+```typescript src/state/bootcampStore.ts
+isLessonCompleted: (weekId: string, lessonId: string) => {
+  const state = get();
+  return state.progress[weekId]?.lessons[lessonId]?.completed ?? false;
+},
+
+isWeekCompleted: (weekId: string) => {
+  const state = get();
+  const weekData = state.progress[weekId];
+  if (!weekData) return false;
+  return Object.values(weekData.lessons).every((l) => l.completed);
+},
+```
+
+## Progress Page UI
+
+The `/progress` route displays a comprehensive analytics dashboard:
+
+```tsx src/pages/ProgressPage.tsx
+import ProgressPage from '@/pages/ProgressPage';
+```
+
+### Key Metrics Cards
+
+```tsx src/pages/ProgressPage.tsx
+const overall = getOverallProgress();
+
+// Calculate total time spent
+const totalMinutes = Object.values(progress).reduce((total, weekData) =>
+  total + Object.values(weekData.lessons).reduce((wTotal, lesson) =>
+    wTotal + lesson.timeSpentMinutes, 0
+  ), 0
+);
+
+// Count quizzes taken and average score
+let quizzesTaken = 0;
+let totalQuizScore = 0;
+Object.values(progress).forEach((weekData) => {
+  Object.values(weekData.lessons).forEach((lesson) => {
+    if (lesson.quizScore !== undefined) {
+      quizzesTaken++;
+      totalQuizScore += lesson.quizScore;
+    }
+  });
+});
+const avgQuizScore = quizzesTaken > 0 ? Math.round(totalQuizScore / quizzesTaken) : 0;
+
+// Count submitted homework
+const homeworkSubmitted = Object.values(progress).filter(
+  (w) => w.homework.status === 'submitted' || w.homework.status === 'graded'
+).length;
+```
+
+**Rendered as:**
+
+<CardGroup cols={4}>
+  <Card title="Overall Progress" icon="trending-up">
+    42% (5/12 lessons)
+  </Card>
+  <Card title="Lessons Done" icon="book-open">
+    5 / 12
+  </Card>
+  <Card title="Avg Quiz Score" icon="brain">
+    85%
+  </Card>
+  <Card title="HW Submitted" icon="file-text">
+    1 / 4
+  </Card>
+</CardGroup>
+
+### Week-by-Week Breakdown
+
+```tsx src/pages/ProgressPage.tsx
+{curriculum.weeks.map((week) => {
+  const wp = getWeekProgress(week.id);
+  const hwStatus = progress[week.id]?.homework.status ?? 'not-started';
+  
+  return (
+    <Card key={week.id}>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div>
+            <Badge variant="outline">Week {week.number}</Badge>
+            {week.title}
+          </div>
+          <div className="flex items-center gap-2">
+            {wp.percentage === 100 && <Trophy className="text-yellow-500" />}
+            <span>{wp.percentage}%</span>
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Progress value={wp.percentage} />
+        
+        {/* Lesson list */}
+        {week.lessons.map((lesson, li) => {
+          const lessonDone = isLessonCompleted(week.id, lesson.id);
+          const quizScore = progress[week.id]?.lessons[lesson.id]?.quizScore;
+          
+          return (
+            <div className={lessonDone ? 'bg-green-500/5' : 'bg-muted/30'}>
+              {lessonDone ? <CheckCircle className="text-green-500" /> : <Circle />}
+              <span>{week.number}.{li + 1}</span>
+              <span>{lesson.title}</span>
+              {quizScore !== undefined && (
+                <Badge className={quizScore >= 70 ? 'text-green-600' : 'text-red-600'}>
+                  Quiz: {quizScore}%
+                </Badge>
+              )}
+            </div>
+          );
+        })}
+        
+        {/* Homework status */}
+        <div>
+          <FileText className="text-orange-500" />
+          <span>Homework: {week.homework.title}</span>
+          <Badge className={hwStatus === 'submitted' ? 'text-green-600' : ''}>
+            {hwStatus}
+          </Badge>
+        </div>
+      </CardContent>
+    </Card>
+  );
+})}
+```
+
+### Completion Celebration
+
+```tsx src/pages/ProgressPage.tsx
+{overall.percentage === 100 && (
+  <Card className="border-yellow-500/30 bg-yellow-500/5">
+    <CardContent className="p-8 text-center">
+      <Trophy className="h-16 w-16 text-yellow-500 mx-auto" />
+      <h3 className="text-2xl font-bold">Bootcamp Complete!</h3>
+      <p className="text-muted-foreground">
+        You've finished all lessons and homework. Congratulations on becoming an FHEVM developer!
+      </p>
+    </CardContent>
+  </Card>
+)}
+```
+
+## Persistence
+
+Progress is automatically persisted using Zustand's `persist` middleware:
+
+```typescript src/state/bootcampStore.ts
+export const useBootcampStore = create<BootcampState>()()
+  persist(
+    (set, get) => ({ /* state and actions */ }),
+    {
+      name: 'fhevm-bootcamp-progress',
+      partialize: (state) => ({
+        learningMode: state.learningMode,
+        instructorMode: state.instructorMode,
+        currentWeekId: state.currentWeekId,
+        currentLessonId: state.currentLessonId,
+        progress: state.progress,
+      }),
+    }
+  )
+);
+```
+
+**What gets persisted:**
+- `learningMode` (self-paced vs cohort)
+- `instructorMode` (on/off)
+- `currentWeekId` and `currentLessonId` (navigation state)
+- `progress` (all lesson/quiz/homework data)
+
+**What doesn't get persisted:**
+- UI state (`confettiTrigger`, `celebrationModal`)
+- Derived getters (recomputed on demand)
+
+<Warning>
+Clearing localStorage will **reset all progress**. Implement cloud sync for production use.
+</Warning>
+
+## Access Control (Cohort Mode)
+
+The store includes gating logic for cohort-based learning:
+
+```typescript src/state/bootcampStore.ts
+canAccessWeek: (weekId: string) => {
+  const state = get();
+  if (state.learningMode === 'self-paced') return true;
+  
+  // Cohort mode: must complete previous week
+  const weekIndex = curriculum.weeks.findIndex((w) => w.id === weekId);
+  if (weekIndex <= 0) return true;
+  
+  const prevWeekId = curriculum.weeks[weekIndex - 1].id;
+  return state.isWeekCompleted(prevWeekId);
+},
+
+canAccessLesson: (weekId: string, lessonId: string) => {
+  const state = get();
+  if (!state.canAccessWeek(weekId)) return false;
+  if (state.learningMode === 'self-paced') return true;
+  
+  // Cohort mode: must complete previous lesson in same week
+  const week = curriculum.weeks.find((w) => w.id === weekId);
+  if (!week) return false;
+  
+  const lessonIndex = week.lessons.findIndex((l) => l.id === lessonId);
+  if (lessonIndex <= 0) return true;
+  
+  const prevLessonId = week.lessons[lessonIndex - 1].id;
+  return state.isLessonCompleted(weekId, prevLessonId);
+},
+```
+
+**Usage in UI:**
+```tsx
+const canAccess = canAccessLesson(weekId, lessonId);
+
+<Button disabled={!canAccess}>
+  {canAccess ? 'Start Lesson' : 'Complete Previous Lesson First'}
+</Button>
+```
+
+<Info>
+In **self-paced mode**, all content is unlocked by default. In **cohort mode**, content unlocks sequentially.
+</Info>
+
+## Reset Progress
+
+For testing and development:
+
+```typescript src/state/bootcampStore.ts
+resetProgress: () =>
+  set({
+    progress: createInitialProgress(),
+    currentWeekId: 'week-1',
+    currentLessonId: null,
+  }),
+```
+
+**Usage:**
+```tsx
+<Button onClick={() => useBootcampStore.getState().resetProgress()}>
+  Reset All Progress
+</Button>
+```
+
+<Warning>
+This action is **irreversible** without a backup.
+</Warning>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Curriculum" icon="book-open" href="./curriculum">
+    Understand the overall curriculum structure
+  </Card>
+  <Card title="Instructor Mode" icon="graduation-cap" href="./instructor-mode">
+    Learn about teaching and facilitation features
+  </Card>
+</CardGroup>

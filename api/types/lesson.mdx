@@ -1,0 +1,252 @@
+---
+title: 'Lesson'
+description: 'Lesson structure with sections, quizzes, and code templates'
+icon: 'graduation-cap'
+---
+
+## Overview
+
+Lesson types define individual learning units with sections, objectives, quizzes, and code examples.
+
+## Types
+
+### Lesson
+
+Represents a single lesson within a week.
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the lesson (e.g., "welcome-to-fhevm", "environment-setup")
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Human-readable lesson title
+  
+  **Example:** "Your First FHEVM Contract"
+</ResponseField>
+
+<ResponseField name="description" type="string" required>
+  Brief summary of what the lesson covers
+  
+  **Example:** "Build an EncryptedCounter contract from scratch with encrypted state variables"
+</ResponseField>
+
+<ResponseField name="estimatedMinutes" type="number" required>
+  Expected time to complete the lesson in minutes
+</ResponseField>
+
+<ResponseField name="icon" type="string" required>
+  Lucide icon name for UI display
+  
+  **Example:** "Code", "Shield", "Settings", "Globe"
+</ResponseField>
+
+<ResponseField name="sections" type="Section[]" required>
+  Array of content sections within the lesson
+</ResponseField>
+
+<ResponseField name="quiz" type="Quiz" optional>
+  Optional quiz to test understanding
+</ResponseField>
+
+<ResponseField name="instructorNotes" type="string[]" required>
+  Teaching tips and common pitfalls for instructors
+  
+  **Example:**
+  ```typescript
+  [
+    "This is the first hands-on coding lesson. Have students type along.",
+    "Common mistake: forgetting FHE.allowThis() after modifying encrypted state."
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="codeTemplate" type="CodeTemplate" optional>
+  Optional starter and solution code for hands-on exercises
+</ResponseField>
+
+<ResponseField name="objectives" type="string[]" required>
+  Specific learning objectives for this lesson
+  
+  **Example:**
+  ```typescript
+  [
+    "Create a Solidity contract that imports and uses FHE types",
+    "Implement functions that accept encrypted inputs"
+  ]
+  ```
+</ResponseField>
+
+---
+
+### Section
+
+A content block within a lesson (text, code, video, interactive, etc.).
+
+<ResponseField name="id" type="string" required>
+  Unique identifier for the section
+</ResponseField>
+
+<ResponseField name="title" type="string" required>
+  Section heading
+</ResponseField>
+
+<ResponseField name="type" type="'text' | 'code' | 'interactive' | 'video' | 'diagram' | 'quiz'" required>
+  The type of content this section contains
+</ResponseField>
+
+<ResponseField name="content" type="string[]" required>
+  Array of paragraphs or content blocks
+  
+  **Example:**
+  ```typescript
+  [
+    "Fully Homomorphic Encryption (FHE) allows computation on encrypted data.",
+    "Think of it as performing math on a locked safe without opening it."
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="code" type="CodeSnippet" optional>
+  Code example (present when type is 'code')
+</ResponseField>
+
+<ResponseField name="tips" type="string[]" optional>
+  Helpful tips or best practices
+  
+  **Example:**
+  ```typescript
+  [
+    "FHE.select() is the encrypted equivalent of the ternary operator",
+    "You cannot use if/else with encrypted conditions"
+  ]
+  ```
+</ResponseField>
+
+<ResponseField name="keyPoints" type="string[]" optional>
+  Key takeaways from this section
+</ResponseField>
+
+<ResponseField name="videoId" type="string" optional>
+  YouTube video ID (present when type is 'video')
+</ResponseField>
+
+<ResponseField name="diagramCode" type="string" optional>
+  Mermaid diagram code (present when type is 'diagram')
+</ResponseField>
+
+<ResponseField name="componentId" type="string" optional>
+  Reference to an interactive component (present when type is 'interactive')
+  
+  **Example:** "connect-wallet", "fhe-basics-contracts"
+</ResponseField>
+
+---
+
+### CodeSnippet
+
+Represents a code example with syntax highlighting.
+
+<ResponseField name="language" type="string" required>
+  Programming language for syntax highlighting
+  
+  **Example:** "solidity", "typescript", "bash", "javascript"
+</ResponseField>
+
+<ResponseField name="code" type="string" required>
+  The actual code content
+</ResponseField>
+
+<ResponseField name="filename" type="string" optional>
+  Suggested filename for the code
+  
+  **Example:** "EncryptedCounter.sol", "deploy.ts"
+</ResponseField>
+
+<ResponseField name="description" type="string" optional>
+  Brief description of what the code does
+</ResponseField>
+
+---
+
+## Type Definitions
+
+```typescript
+export interface Lesson {
+  id: string;
+  title: string;
+  description: string;
+  estimatedMinutes: number;
+  icon: string; // lucide icon name
+  sections: Section[];
+  quiz?: Quiz;
+  instructorNotes: string[];
+  codeTemplate?: CodeTemplate;
+  objectives: string[];
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  type: 'text' | 'code' | 'interactive' | 'video' | 'diagram' | 'quiz';
+  content: string[];
+  code?: CodeSnippet;
+  tips?: string[];
+  keyPoints?: string[];
+  videoId?: string;
+  diagramCode?: string;
+  componentId?: string;
+}
+
+export interface CodeSnippet {
+  language: string;
+  code: string;
+  filename?: string;
+  description?: string;
+}
+
+export interface CodeTemplate {
+  starterCode: CodeSnippet;
+  solutionCode: CodeSnippet;
+  description: string;
+}
+```
+
+## Usage Example
+
+```typescript
+import { curriculum } from '@/data/curriculum';
+
+// Access first lesson of first week
+const firstLesson = curriculum.weeks[0].lessons[0];
+
+console.log(firstLesson.title); // "Welcome to FHEVM"
+console.log(firstLesson.estimatedMinutes); // 30
+console.log(firstLesson.icon); // "Home"
+
+// Iterate through sections
+firstLesson.sections.forEach((section) => {
+  console.log(`Section: ${section.title}`);
+  console.log(`Type: ${section.type}`);
+  
+  if (section.code) {
+    console.log(`Language: ${section.code.language}`);
+    console.log(`File: ${section.code.filename}`);
+  }
+  
+  if (section.type === 'video' && section.videoId) {
+    console.log(`YouTube: https://youtube.com/watch?v=${section.videoId}`);
+  }
+});
+
+// Access code template if available
+if (firstLesson.codeTemplate) {
+  console.log('Starter:', firstLesson.codeTemplate.starterCode.code);
+  console.log('Solution:', firstLesson.codeTemplate.solutionCode.code);
+}
+```
+
+## Related Types
+
+- [Curriculum](/api/types/curriculum) - Top-level curriculum structure
+- [Quiz](/api/types/quiz) - Lesson quiz questions
+- [Homework](/api/types/homework) - Weekly assignments
