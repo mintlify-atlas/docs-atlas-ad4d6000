@@ -1,0 +1,103 @@
+{
+  "projectType": "saas",
+  "projectName": "Journey - FHEVM Developer Bootcamp",
+  "projectDescription": "A comprehensive 4-week bootcamp platform for learning FHEVM development with interactive lessons, quizzes, and hands-on projects.",
+  "theme": "almond",
+  "primaryColor": "#8B5CF6",
+  "lightColor": "#A78BFA",
+  "darkColor": "#7C3AED",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": ["introduction", "quickstart", "installation"]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/curriculum",
+              "features/lessons",
+              "features/quizzes",
+              "features/homework",
+              "features/progress-tracking",
+              "features/instructor-mode"
+            ]
+          },
+          {
+            "group": "Curriculum",
+            "pages": [
+              "curriculum/overview",
+              "curriculum/week-1",
+              "curriculum/week-2",
+              "curriculum/week-3",
+              "curriculum/week-4"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/deployment",
+              "guides/customization",
+              "guides/instructor-setup",
+              "guides/student-experience"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Core Types",
+            "pages": [
+              "api/types/curriculum",
+              "api/types/lesson",
+              "api/types/quiz",
+              "api/types/homework"
+            ]
+          },
+          {
+            "group": "State Management",
+            "pages": [
+              "api/state/bootcamp-store",
+              "api/state/progress-tracking"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "api/components/lesson-view",
+              "api/components/quiz-section",
+              "api/components/homework-page"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "4-week structured FHEVM curriculum with 12 comprehensive lessons",
+    "Interactive quizzes with instant feedback and explanations",
+    "Weekly homework assignments with grading rubrics",
+    "Progress tracking dashboard with analytics",
+    "Instructor mode with teaching notes and facilitation tips",
+    "Live blockchain integration with Wagmi and RainbowKit",
+    "Self-paced and cohort learning modes",
+    "Downloadable code templates and solutions"
+  ],
+  "publicApiSurface": [
+    "useBootcampStore - Main Zustand store for bootcamp state",
+    "curriculum - Complete 4-week curriculum data",
+    "Dashboard - Main landing page component",
+    "LessonView - Lesson content renderer",
+    "QuizSection - Interactive quiz component",
+    "HomeworkPage - Homework specifications and grading",
+    "ProgressPage - Analytics dashboard",
+    "InstructorGuide - Teaching notes and guidance",
+    "BootcampNavigation - Week-based sidebar navigation",
+    "AppBar - Top navigation with wallet connection"
+  ]
+}
